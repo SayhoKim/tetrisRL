@@ -12,67 +12,77 @@ class DuelingDoubleDQN():
     def __init__(self, cfg):
         rows = cfg['ROWS']
         cols = cfg['COLUMNS']
-        # self.action_space = [0, 1, 2, 3, 4, 5, 6]
-        self.action_space = [i for i in range(4 * 7)]  # 28 grouped action : board 7x14
-        self.action_size = len(self.action_space)
-        self.next_stone_size = 6
-        self.state_size = (rows + 1, cols, 1)
-        self.discount_factor = 0.99
+        if cfg['MODE'] == 'train':
+            # self.action_space = [0, 1, 2, 3, 4, 5, 6]
+            self.action_space = [i for i in range(4 * 7)]  # 28 grouped action : board 7x14
+            self.action_size = len(self.action_space)
+            self.next_stone_size = 6
+            self.state_size = (rows + 1, cols, 1)
+            self.discount_factor = 0.99
 
-        # 딥마인드의 논문에서는 PER을 사용하여 샘플링한 데이터는 학습되는 양이 크기 때문에
-        # 학습의 안정성을 위해 Learning rate를 기존 random uniform sample을 사용했을 때의 1/4 수준으로 줄였기에 이를 반영했습니다.
-        # self.learning_rate = 0.00025
-        self.learning_rate = 0.0000625
+            # 딥마인드의 논문에서는 PER을 사용하여 샘플링한 데이터는 학습되는 양이 크기 때문에
+            # 학습의 안정성을 위해 Learning rate를 기존 random uniform sample을 사용했을 때의 1/4 수준으로 줄였기에 이를 반영했습니다.
+            # self.learning_rate = 0.00025
+            self.learning_rate = 0.0000625
 
-        self.epsilon = 1.  # 1.
-        self.epsilon_min = 0.00
-        self.epsilon_decay = 1000000  # 1000000
+            self.epsilon = 1.  # 1.
+            self.epsilon_min = 0.00
+            self.epsilon_decay = 1000000  # 1000000
 
-        self.model = self.build_model()
-        self.target_model = self.build_model()
+            self.model = self.build_model()
+            self.target_model = self.build_model()
 
-        # custom loss function을 따로 정의하여 학습에 사용합니다.
-        self.model_updater = self.model_optimizer()
+            # custom loss function을 따로 정의하여 학습에 사용합니다.
+            self.model_updater = self.model_optimizer()
 
-        self.batch_size = 64
-        self.train_start = 50000  # 50000
+            self.batch_size = 64
+            self.train_start = 50000  # 50000
 
-        # PER 선언 및 관련 hyper parameter입니다.
+            # PER 선언 및 관련 hyper parameter입니다.
 
-        # beta는 importance sampling ratio를 얼마나 반영할지에 대한 수치입니다.
-        # 정확한 의미는 아니지만 정말 추상적으로 설명드리면
-        # beta가 크다 -> PER을 사용함으로써 생기는 데이터 편향을 크게 보정하겠다 -> TD-error가 큰 데이터에 대한 학습량 감소, 전체적인 학습은 조금더 안정적
-        # beta가 작다 -> PER을 사용함으로써 생기는 데이터 편향을 작게 보정하겠다 -> TD-error가 큰 데이터에 대한 학습량 증가, 전체적인 학습은 조금더 불안정
-        # 논문에서는 초기 beta를 0.4로 두고 학습이 끝날때까지 선형적으로 1까지 증가시킴.
+            # beta는 importance sampling ratio를 얼마나 반영할지에 대한 수치입니다.
+            # 정확한 의미는 아니지만 정말 추상적으로 설명드리면
+            # beta가 크다 -> PER을 사용함으로써 생기는 데이터 편향을 크게 보정하겠다 -> TD-error가 큰 데이터에 대한 학습량 감소, 전체적인 학습은 조금더 안정적
+            # beta가 작다 -> PER을 사용함으로써 생기는 데이터 편향을 작게 보정하겠다 -> TD-error가 큰 데이터에 대한 학습량 증가, 전체적인 학습은 조금더 불안정
+            # 논문에서는 초기 beta를 0.4로 두고 학습이 끝날때까지 선형적으로 1까지 증가시킴.
 
-        # alpha는 TD-error의 크기를 어느정도로 반영할지에 대한 파라미터입니다. 수식으로는 (TD-error)^alpha 로 표현됩니다.
-        # alpha가 0에 가까울수록 TD-error의 크기를 반영하지 않는 것이고 기존의 uniform sampling에 가까워집니다.
-        # alpha가 1에 가까울수록 TD-error의 크기를 반영하는 것이고 PER에 가까워집니다.
-        # 논문에서는 alpha를 0.6으로 사용했습니다.
+            # alpha는 TD-error의 크기를 어느정도로 반영할지에 대한 파라미터입니다. 수식으로는 (TD-error)^alpha 로 표현됩니다.
+            # alpha가 0에 가까울수록 TD-error의 크기를 반영하지 않는 것이고 기존의 uniform sampling에 가까워집니다.
+            # alpha가 1에 가까울수록 TD-error의 크기를 반영하는 것이고 PER에 가까워집니다.
+            # 논문에서는 alpha를 0.6으로 사용했습니다.
 
-        # prioritized_replay_eps는 (TD-error)^alpha를 계산할때 TD-error가 0인 상황을 방지하기위해 TD-error에 더 해주는 아주작은 상수값 입니다.
+            # prioritized_replay_eps는 (TD-error)^alpha를 계산할때 TD-error가 0인 상황을 방지하기위해 TD-error에 더 해주는 아주작은 상수값 입니다.
 
-        self.memory = PrioritizedReplayBuffer(1000000, alpha=0.6)  # 1000000
-        self.beta = 0.4  # 0.4
-        self.beta_max = 1.0
-        self.beta_decay = 2000000  # 5000000
-        self.prioritized_replay_eps = 0.000001
+            self.memory = PrioritizedReplayBuffer(1000000, alpha=0.6)  # 1000000
+            self.beta = 0.4  # 0.4
+            self.beta_max = 1.0
+            self.beta_decay = 2000000  # 5000000
+            self.prioritized_replay_eps = 0.000001
 
-        # 텐서보드 설정
-        self.sess = tf.InteractiveSession()
-        K.set_session(self.sess)
+            # 텐서보드 설정
+            self.sess = tf.InteractiveSession()
+            K.set_session(self.sess)
 
-        self.summary_placeholders, self.update_ops, self.summary_op = \
-            self.setup_summary()
-        self.summary_writer = tf.summary.FileWriter(
-            'experiments/{}'.format(cfg['DATE']), self.sess.graph)
-        self.sess.run(tf.global_variables_initializer())
+            self.summary_placeholders, self.update_ops, self.summary_op = \
+                self.setup_summary()
+            self.summary_writer = tf.summary.FileWriter(
+                'experiments/{}'.format(cfg['DATE']), self.sess.graph)
+            self.sess.run(tf.global_variables_initializer())
 
-        self.load_model = False
-        if self.load_model:
-            self.model.load_weights("./DQN_tetris_model_0912.h5")
+            if cfg['TRAIN']['RESUME']:
+                self.model.load_weights(cfg['TRAIN']['RESUMEPATH'])
 
-        self.imitation_mode = False
+            self.imitation_mode = False
+
+        elif cfg['MODE'] == 'test':
+            self.epsilon = 0.
+            self.beta = 1.0
+            self.state_size = (rows + 1, cols, 1)
+            self.action_space = [i for i in range(4 * 7)]  # 28 grouped action : board 7x14
+            self.action_size = len(self.action_space)
+            self.model = self.build_model()
+            self.model.load_weights(cfg['TEST']['MODELPATH'])
+
 
     # 각 에피소드 당 학습 정보를 기록
     def setup_summary(self):

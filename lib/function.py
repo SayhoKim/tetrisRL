@@ -31,7 +31,6 @@ class Trainer():
         key_actions = ["LEFT", "RIGHT", "UP", "DOWN"]
 
         for e in range(EPISODES):
-
             done = False
             score = 0.0
             env.start_game()
@@ -67,8 +66,6 @@ class Trainer():
                         })
                     summary_str = self.agent.sess.run(self.agent.summary_op)
                     self.agent.summary_writer.add_summary(summary_str, e + 1)
-                else:
-                    done = False
 
                 next_state = self.pre_processing(env.gameScreen)
                 next_state = np.reshape(next_state, [self.rows + 1, self.cols, 1])
@@ -108,8 +105,9 @@ class Trainer():
             # 보상 저장 및 학습 진행 관련 변수들 출력
             self.scores.append(score)
             self.episodes.append(e)
-            print("episode:", e, "score:", score, "total_clline:", env.total_clline, "global_step:", self.global_step,
-                  "epsilon:", self.agent.epsilon, "beta:", self.agent.beta)
+            print(
+                "Episode: {0} score: {1:.3f} total_clr_line: {2} global_step: {3} epsilon: {4:.3f} beta: {5:.3f}".format(
+                    e, score, env.total_clline, self.global_step, self.agent.epsilon, self.agent.beta))
 
             # 10000000번의 행동을 취한 후에 학습 종료
             if e % 10000 == 0 and e > 10000:
@@ -117,6 +115,61 @@ class Trainer():
 
             # if e % 100000 == 0 and e > 50000:
             #     self.agent.model.save_weights("experiments/{}/DQN_tetris_model_1104_term.h5".format(self.cfg['DATE']))
+
+    def pre_processing(self, gameimage):
+        # ret = np.uint8(resize(rgb2gray(gameimage), (40, 40), mode='constant')*255) # grayscale
+        copy_image = copy.deepcopy(gameimage)
+        ret = [[0] * self.cols for _ in range(self.rows + 1)]
+        for i in range(self.rows + 1):
+            for j in range(self.cols):
+                if copy_image[i][j] > 0:
+                    ret[i][j] = 1
+                else:
+                    ret[i][j] = 0
+
+        ret = sum(ret, [])
+        return ret
+
+
+class Tester():
+    def __init__(self, cfg):
+        cfg['DATE'] = datetime.now().strftime('%y%m%d_%H%M%S')
+        self.cfg = cfg
+        self.rows = cfg['ROWS']
+        self.cols = cfg['COLUMNS']
+        self.agent = DuelingDoubleDQN(cfg)
+
+    def test(self):
+        env = TetrisApp(self.cfg)
+
+        e = 0
+        while True:
+            done = False
+            score = 0.0
+            env.start_game()
+
+            state = self.pre_processing(env.gameScreen)
+            state = np.reshape(state, [self.rows + 1, self.cols, 1])
+
+            while not done:
+                action = self.agent.get_action(env, np.reshape(state, [1, self.rows + 1, self.cols, 1]))
+                reward, _ = env.step(action)
+
+                # 게임이 끝났을 경우에 대해 보상 -1
+                if env.gameover:
+                    done = True
+                    reward = -2.0
+
+                next_state = self.pre_processing(env.gameScreen)
+                state = np.reshape(next_state, [self.rows + 1, self.cols, 1])
+
+                score += reward
+
+            print("Episode: {0} score: {1:.3f} total_clr_line: {2} epsilon: {3:.3f} beta: {4:.3f}".format(e, score,
+                                                                                                          env.total_clline,
+                                                                                                          self.agent.epsilon,
+                                                                                                          self.agent.beta))
+            e += 1
 
     def pre_processing(self, gameimage):
         # ret = np.uint8(resize(rgb2gray(gameimage), (40, 40), mode='constant')*255) # grayscale
