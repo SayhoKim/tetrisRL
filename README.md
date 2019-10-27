@@ -6,6 +6,6 @@
 1. Install Pygame, Keras and Tensorflow
 2. Clone this repo
 ### Training
-'''
+```Shell
 python main.py
-'''
+```
