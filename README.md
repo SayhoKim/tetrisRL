@@ -1,6 +1,6 @@
 # tetrisRL
 ## Results
-![](https://github.com/SayhoKim/tetrisRL/results_1.jpg) | ![](https://github.com/SayhoKim/tetrisRL/results_2.jpg)
+![](https://github.com/SayhoKim/tetrisRL/blob/master/results_1.jpg) | ![](https://github.com/SayhoKim/tetrisRL/blob/master/results_1.jpg)
 ## Quick start
 ### Installation
 1. Install Pygame, Keras and Tensorflow
