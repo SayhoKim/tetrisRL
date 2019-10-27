@@ -130,8 +130,8 @@ class TetrisApp(object):
         self.plus_score = 0
 
         ##Timer Settings
-        # self.draw_matrix(self.board, (0, 0))
-        # pygame.time.set_timer(pygame.USEREVENT + 1, 1000)   #timer go to game speed
+        self.draw_matrix(self.board, (0, 0))
+        pygame.time.set_timer(pygame.USEREVENT + 1, 1000)   #timer go to game speed
 
     def disp_msg(self, msg, topleft):
         x, y = topleft
@@ -660,5 +660,5 @@ Press space to continue""" % self.score)
 if __name__ == '__main__':
     cfg_file = open('../configs/config.yaml', 'r')
     cfg = yaml.load(cfg_file)
-    App = TetrisApp(cfg['CONFIG'])
+    App = TetrisApp(cfg)
     App.run()
