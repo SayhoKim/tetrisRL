@@ -71,7 +71,7 @@ class DuelingDoubleDQN():
             self.action_space = [i for i in range(4 * 7)]  # 28 grouped action : board 7x14
             self.action_size = len(self.action_space)
             self.model = self.build_model()
-            self.model.load_weights(cfg['TEST']['MODELPATH'])
+            self.model.load_weights(cfg['DEMO']['MODELPATH'])
 
     def setup_summary(self):
         episode_total_reward = tf.Variable(0.)

@@ -12,8 +12,7 @@ python main.py
 ### Demo
 After editing configuration file (MODELPATH):
 ```Shell
-python main.py \
-    --train False
+python main.py --demo
 ```
 ## Reference
 [Playing Atari with Deep Reinforcement Learning](https://arxiv.org/abs/1312.5602) \
