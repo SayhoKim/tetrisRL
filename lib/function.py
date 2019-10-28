@@ -13,9 +13,12 @@ class Trainer():
         self.cfg = cfg
         self.rows = cfg['ROWS']
         self.cols = cfg['COLUMNS']
-        self.agent = DuelingDoubleDQN(cfg)
         self.global_step = 0
+        self.epsilon_step = cfg['TRAIN']['EPSILONSTEP']
+        self.epsilon_step_decay = cfg['TRAIN']['EPSILONSTEPDECAY']
         self.scores, self.episodes = [], []
+
+        self.agent = DuelingDoubleDQN(cfg)
         self.agent.update_target_model()
 
     def train(self):
@@ -25,6 +28,7 @@ class Trainer():
         update_target_step = 0
 
         EPISODES = 10000000
+        best_loss = float('inf')
 
         pygame.init()
 
@@ -33,15 +37,15 @@ class Trainer():
         for e in range(EPISODES):
             done = False
             score = 0.0
+            loss = 0.0
+            ep_step = 1
             env.start_game()
 
             state = self.pre_processing(env.gameScreen)
             state = np.reshape(state, [self.rows + 1, self.cols, 1])
 
             while not done:
-
                 # time.sleep(0.1)
-
                 for event in pygame.event.get():
                     if event.type == pygame.KEYDOWN:
                         for key in key_actions:
@@ -80,6 +84,8 @@ class Trainer():
 
                     # epsilon > 0.05 이면 epsilon 값을 조금씩 감소
                     if self.agent.epsilon > self.agent.epsilon_min:
+                        if self.agent.epsilon in self.epsilon_step:
+                            self.agent.epsilon_decay *= self.epsilon_step_decay
                         self.agent.epsilon -= (1.0 - self.agent.epsilon_min) / self.agent.epsilon_decay
 
                     # beta < 1.0 이면 beta를 조금씩 증가
@@ -91,7 +97,8 @@ class Trainer():
                     # 4번의 행동을 취한 후에 한 번 학습
                     if update_train_step > 3:
                         update_train_step = 0
-                        self.agent.train_model()
+                        loss += self.agent.train_model()
+                        ep_step += 1
 
                     # 10000번의 행동을 취한 후에 한 번 타겟 네트워크 복사
                     if update_target_step > 10000:
@@ -113,8 +120,9 @@ class Trainer():
             if e % 10000 == 0 and e > 10000:
                 self.agent.model.save_weights("experiments/{0}/model_ep_{1}.h5".format(self.cfg['DATE'], e))
 
-            # if e % 100000 == 0 and e > 50000:
-            #     self.agent.model.save_weights("experiments/{}/DQN_tetris_model_1104_term.h5".format(self.cfg['DATE']))
+            if best_loss > (loss/ep_step):
+                print('Saved Best Loss Model: {0:.6f}'.format((loss/ep_step)))
+                self.agent.model.save_weights("experiments/{0}/model_best_loss.h5".format(self.cfg['DATE']))
 
     def pre_processing(self, gameimage):
         # ret = np.uint8(resize(rgb2gray(gameimage), (40, 40), mode='constant')*255) # grayscale

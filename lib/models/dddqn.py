@@ -3,7 +3,7 @@ import keras.backend as K
 import random
 import tensorflow as tf
 from lib.utils.replay_buffer import PrioritizedReplayBuffer
-from keras.layers import Dense, Lambda, Input, Add, Conv2D, Flatten, concatenate
+from keras.layers import Dense, Lambda, Input, Add, Conv2D, Flatten, concatenate, BatchNormalization, ReLU
 from keras.optimizers import Adam
 from keras.models import Model
 
@@ -18,27 +18,19 @@ class DuelingDoubleDQN():
             self.action_size = len(self.action_space)
             self.next_stone_size = 6
             self.state_size = (rows + 1, cols, 1)
-            self.discount_factor = 0.99
 
-            # 딥마인드의 논문에서는 PER을 사용하여 샘플링한 데이터는 학습되는 양이 크기 때문에
-            # 학습의 안정성을 위해 Learning rate를 기존 random uniform sample을 사용했을 때의 1/4 수준으로 줄였기에 이를 반영했습니다.
-            # self.learning_rate = 0.00025
-            self.learning_rate = 0.0000625
+            self.train_start = cfg['TRAIN']['TRAINSTART']
+            self.batch_size = cfg['TRAIN']['BATCHSIZE']
+            self.learning_rate = cfg['TRAIN']['LR']
+            self.discount_factor = cfg['TRAIN']['DISCOUNTFACTOR']
 
-            self.epsilon = 1.  # 1.
-            self.epsilon_min = 0.00
-            self.epsilon_decay = 1000000  # 1000000
+            self.epsilon = cfg['TRAIN']['EPSILON']
+            self.epsilon_min = cfg['TRAIN']['EPSILONMIN']
+            self.epsilon_decay = cfg['TRAIN']['EPSILONDECAY']
 
             self.model = self.build_model()
             self.target_model = self.build_model()
-
-            # custom loss function을 따로 정의하여 학습에 사용합니다.
             self.model_updater = self.model_optimizer()
-
-            self.batch_size = 64
-            self.train_start = 50000  # 50000
-
-            # PER 선언 및 관련 hyper parameter입니다.
 
             # beta는 importance sampling ratio를 얼마나 반영할지에 대한 수치입니다.
             # 정확한 의미는 아니지만 정말 추상적으로 설명드리면
@@ -53,20 +45,17 @@ class DuelingDoubleDQN():
 
             # prioritized_replay_eps는 (TD-error)^alpha를 계산할때 TD-error가 0인 상황을 방지하기위해 TD-error에 더 해주는 아주작은 상수값 입니다.
 
-            self.memory = PrioritizedReplayBuffer(1000000, alpha=0.6)  # 1000000
-            self.beta = 0.4  # 0.4
-            self.beta_max = 1.0
-            self.beta_decay = 2000000  # 5000000
+            self.memory = PrioritizedReplayBuffer(1000000, alpha=0.6)
+            self.beta = cfg['TRAIN']['BETA']
+            self.beta_max = cfg['TRAIN']['BETAMAX']
+            self.beta_decay = cfg['TRAIN']['BETADECAY']
             self.prioritized_replay_eps = 0.000001
 
-            # 텐서보드 설정
+            ##Tensorboard configuration
             self.sess = tf.InteractiveSession()
             K.set_session(self.sess)
-
-            self.summary_placeholders, self.update_ops, self.summary_op = \
-                self.setup_summary()
-            self.summary_writer = tf.summary.FileWriter(
-                'experiments/{}'.format(cfg['DATE']), self.sess.graph)
+            self.summary_placeholders, self.update_ops, self.summary_op = self.setup_summary()
+            self.summary_writer = tf.summary.FileWriter('experiments/{}'.format(cfg['DATE']), self.sess.graph)
             self.sess.run(tf.global_variables_initializer())
 
             if cfg['TRAIN']['RESUME']:
@@ -109,25 +98,29 @@ class DuelingDoubleDQN():
 
         # Dueling DQN
         state = Input(shape=(self.state_size[0], self.state_size[1], self.state_size[2],))
-        layer = Conv2D(64, (4, 4), strides=(2, 2), activation='relu', kernel_initializer='he_uniform')(
-            state)  # 64, (4, 4)
-        layer = Conv2D(64, (2, 2), strides=(1, 1), activation='relu', kernel_initializer='he_uniform')(layer)  ##
-        layer = Conv2D(64, (1, 1), strides=(1, 1), activation='relu', kernel_initializer='he_uniform')(layer)  ##
-        layer = Flatten()(layer)
+        x1 = Conv2D(32, (3, 3), strides=(1, 1), kernel_initializer='he_uniform', padding='same')(state)
+        x1 = BatchNormalization()(x1)
+        x1 = ReLU()(x1)
+        x1 = Conv2D(32, (3, 3), strides=(1, 1), kernel_initializer='he_uniform', padding='same')(x1)
+        x1 = BatchNormalization()(x1)
+        x1 = ReLU()(x1)
+        x1 = Add()([x1, state])
 
-        layer2 = Conv2D(256, (1, 1), strides=(1, 1), activation='relu', kernel_initializer='he_uniform')(state)
-        layer2 = Conv2D(256, (1, 1), strides=(1, 1), activation='relu', kernel_initializer='he_uniform')(layer2)
-        layer2 = Flatten()(layer2)
+        x2 = Conv2D(64, (3, 3), strides=(2, 2), kernel_initializer='he_uniform', padding='same')(x1)
+        x2 = BatchNormalization()(x2)
+        x2 = ReLU()(x2)
+        x2 = Conv2D(64, (3, 3), strides=(1, 1), kernel_initializer='he_uniform', padding='same')(x2)
+        x2 = BatchNormalization()(x2)
+        x2 = ReLU()(x2)
+        ds = Conv2D(64, (1, 1), strides=(2, 2), kernel_initializer='he_uniform', padding='same')(x1)
+        x2 = Add()([x2, ds])
+        x2 = Flatten()(x2)
 
-        merge_layer = concatenate([layer, layer2], axis=1)
-        merge_layer = Dense(128, activation='relu', kernel_initializer='he_uniform')(merge_layer)
-        merge_layer = Dense(128, activation='relu', kernel_initializer='he_uniform')(merge_layer)
-
-        vlayer = Dense(64, activation='relu', kernel_initializer='he_uniform')(merge_layer)
-        alayer = Dense(64, activation='relu', kernel_initializer='he_uniform')(merge_layer)
-        v = Dense(1, activation='linear', kernel_initializer='he_uniform')(vlayer)
+        v = Dense(64, activation='relu', kernel_initializer='he_uniform')(x2)
+        v = Dense(1, activation='linear', kernel_initializer='he_uniform')(v)
         v = Lambda(lambda v: tf.tile(v, [1, self.action_size]))(v)
-        a = Dense(self.action_size, activation='linear', kernel_initializer='he_uniform')(alayer)
+        a = Dense(64, activation='relu', kernel_initializer='he_uniform')(x2)
+        a = Dense(self.action_size, activation='linear', kernel_initializer='he_uniform')(a)
         a = Lambda(lambda a: a - tf.reduce_mean(a, axis=-1, keep_dims=True))(a)
         q = Add()([v, a])
         model = Model(inputs=state, outputs=q)
@@ -170,7 +163,7 @@ class DuelingDoubleDQN():
         target = K.placeholder(shape=[None, self.action_size])
         weight = K.placeholder(shape=[None, ])
 
-        # hubber loss에 대한 코드입니다.
+        # hubber loss
         clip_delta = 1.0
         pred = self.model.output
         err = target - pred
@@ -215,3 +208,5 @@ class DuelingDoubleDQN():
 
         # 샘플링한 데이터에 대해 새롭게 계산된 TD-error를 업데이트 합니다.
         self.memory.update_priorities(batch_idxes, new_priorities)
+
+        return np.mean(err)
