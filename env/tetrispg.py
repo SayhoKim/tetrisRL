@@ -213,6 +213,7 @@ class TetrisApp(object):
     def move_drop(self, n):
         self.move(n)
         self.hard_drop(True)
+        # self.drop(True)
 
     def quit(self):
         self.center_msg("Exiting...")
@@ -403,26 +404,17 @@ class TetrisApp(object):
         self.game_clline = 0
         self.score_flag = False
 
-        '''
-        if self.new_stone_flag:
-            self.n_rotate_stone(action)
-        else :
-            if action == 2:
-                self.hard_drop(True)
-            else :
-                self.move_drop(action-2)
-        '''
+        ##original action play
+        # if action==0:
+        #     self.drop(True)
+        # if action==1:
+        #     self.move(-1)
+        # if action==2:
+        #     self.move(+1)
+        # if action==3:
+        #     self.rotate_stone()
 
-        '''
-        if action==0:
-            self.drop(True)
-        if action==1:
-            self.move(-1)
-        if action==2:
-            self.move(+1)
-        if action==3:
-            self.rotate_stone()
-        '''
+        ##group action play
         r_action = -1
         if action > 20 :
             r_action = action - 21
@@ -518,6 +510,7 @@ class TetrisApp(object):
             'LEFT': lambda: self.move(-1),
             'RIGHT': lambda: self.move(+1),
             'DOWN': lambda: self.hard_drop(True),
+            # 'DOWN': lambda: self.drop(True),
             'UP': self.rotate_stone,
             'p': self.toggle_pause,
             'SPACE': self.start_game,

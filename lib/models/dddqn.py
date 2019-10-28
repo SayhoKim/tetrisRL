@@ -13,8 +13,8 @@ class DuelingDoubleDQN():
         rows = cfg['ROWS']
         cols = cfg['COLUMNS']
         if cfg['MODE'] == 'train':
-            # self.action_space = [0, 1, 2, 3, 4, 5, 6]
             self.action_space = [i for i in range(4 * 7)]  # 28 grouped action : board 7x14
+            # self.action_space = [i for i in range(4)]
             self.action_size = len(self.action_space)
             self.next_stone_size = 6
             self.state_size = (rows + 1, cols, 1)
@@ -108,7 +108,6 @@ class DuelingDoubleDQN():
     def build_model(self):
 
         # Dueling DQN
-
         state = Input(shape=(self.state_size[0], self.state_size[1], self.state_size[2],))
         layer = Conv2D(64, (4, 4), strides=(2, 2), activation='relu', kernel_initializer='he_uniform')(
             state)  # 64, (4, 4)
@@ -124,8 +123,6 @@ class DuelingDoubleDQN():
         merge_layer = Dense(128, activation='relu', kernel_initializer='he_uniform')(merge_layer)
         merge_layer = Dense(128, activation='relu', kernel_initializer='he_uniform')(merge_layer)
 
-        # layer = Dense(64, activation='relu', kernel_initializer='he_uniform')(state)
-        # merge_layer = Flatten()(merge_layer)
         vlayer = Dense(64, activation='relu', kernel_initializer='he_uniform')(merge_layer)
         alayer = Dense(64, activation='relu', kernel_initializer='he_uniform')(merge_layer)
         v = Dense(1, activation='linear', kernel_initializer='he_uniform')(vlayer)
@@ -143,27 +140,13 @@ class DuelingDoubleDQN():
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
 
-        '''
-    def get_action(self, state):
-        if np.random.rand() <= self.epsilon:
-            return random.randrange(self.action_size)
-        else:
-            state = np.float32(state)
-            q_values = self.model.predict(state)
-            return np.argmax(q_values[0])
-
-
-    def get_action(self, env, state):
-        if np.random.rand() <= self.epsilon:
-            if env.new_stone_flag:
-                return random.randrange(4)
-            else:
-                return random.randrange(self.action_size)
-        else:
-            state = np.float32(state)
-            q_values = self.model.predict(state)
-            return np.argmax(q_values[0])
-    '''
+    # def get_action(self, env, state):
+    #     if np.random.rand() <= self.epsilon:
+    #         return random.randrange(self.action_size)
+    #     else:
+    #         state = np.float32(state)
+    #         q_values = self.model.predict(state)
+    #         return np.argmax(q_values[0])
 
     def get_action(self, env, state):
         if np.random.rand() <= self.epsilon:
@@ -188,28 +171,19 @@ class DuelingDoubleDQN():
         weight = K.placeholder(shape=[None, ])
 
         # hubber loss에 대한 코드입니다.
-
         clip_delta = 1.0
-
         pred = self.model.output
-
         err = target - pred
-
         cond = K.abs(err) < clip_delta
-
         squared_loss = 0.5 * K.square(err)
         linear_loss = clip_delta * (K.abs(err) - 0.5 * clip_delta)
-
         loss1 = tf.where(cond, squared_loss, linear_loss)
 
         # 기존 hubber loss에 importance sampling ratio를 곱하는 형태의 PER loss를 정의합니다.
         weighted_loss = tf.multiply(tf.expand_dims(weight, -1), loss1)
-
         loss = K.mean(weighted_loss, axis=-1)
-
         optimizer = Adam(lr=self.learning_rate)
         updates = optimizer.get_updates(self.model.trainable_weights, [], loss)
-
         train = K.function([self.model.input, target, weight], [err], updates=updates)
 
         return train
@@ -218,7 +192,6 @@ class DuelingDoubleDQN():
 
         (update_input, action, reward, update_target, done, weight, batch_idxes) = self.memory.sample(self.batch_size,
                                                                                                       beta=self.beta)
-
         target = self.model.predict(update_input)
         target_val = self.target_model.predict(update_target)
         target_val_arg = self.model.predict(update_target)
