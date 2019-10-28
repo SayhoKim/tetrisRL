@@ -54,7 +54,7 @@ class Trainer():
                     done = True
                     reward = -2.0
 
-                    stats = [env.score, env.total_clline, self.global_step]
+                    stats = [env.score, env.total_clrline]
                     for i in range(len(stats)):
                         self.agent.sess.run(self.agent.update_ops[i],
                                             feed_dict={self.agent.summary_placeholders[i]: float(stats[i])})
@@ -97,7 +97,7 @@ class Trainer():
             self.episodes.append(e)
             print(
                 "Episode: {0} score: {1:.3f} total_clr_line: {2} global_step: {3} epsilon: {4:.3f} beta: {5:.3f}".format(
-                    e, score, env.total_clline, self.global_step, self.agent.epsilon, self.agent.beta))
+                    e, score, env.total_clrline, self.global_step, self.agent.epsilon, self.agent.beta))
 
             if e % 10000 == 0 and e > 10000:
                 self.agent.model.save_weights("experiments/{0}/model_ep_{1}.h5".format(self.cfg['DATE'], e))
@@ -157,7 +157,7 @@ class Tester():
                 # time.sleep(0.1)
 
             print("Episode: {0} score: {1:.3f} total_clr_line: {2} epsilon: {3:.3f} beta: {4:.3f}".format(e, score,
-                                                                                                          env.total_clline,
+                                                                                                          env.total_clrline,
                                                                                                           self.agent.epsilon,
                                                                                                           self.agent.beta))
             e += 1

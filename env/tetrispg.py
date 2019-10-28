@@ -107,8 +107,8 @@ class TetrisApp(object):
         self.level = 1
         self.score = 0
         self.lines = 0
-        self.game_clline = 0
-        self.total_clline = 0
+        self.game_clrline = 0
+        self.total_clrline = 0
         board_screen = copy.deepcopy(self.board)
         stone_m = len(self.stone)
         stone_n = len(self.stone[0])
@@ -248,7 +248,7 @@ class TetrisApp(object):
                             break
                     else:
                         break
-                self.game_clline = cleared_rows
+                self.game_clrline = cleared_rows
                 self.add_cl_lines(cleared_rows)
 
                 # combo check
@@ -322,7 +322,7 @@ class TetrisApp(object):
                                 break
                         else:
                             break
-                    self.game_clline = cleared_rows
+                    self.game_clrline = cleared_rows
                     self.add_cl_lines(cleared_rows)
 
                     # combo check
@@ -401,7 +401,7 @@ class TetrisApp(object):
         self.minus_score = 0
         self.plus_score = 0
         post_score = game_score
-        self.game_clline = 0
+        self.game_clrline = 0
         self.score_flag = False
 
         ##original action play
@@ -432,7 +432,7 @@ class TetrisApp(object):
             r_action = action
             self.move_drop(r_action - 2)
 
-        self.total_clline += self.game_clline
+        self.total_clrline += self.game_clrline
 
         self.screen.fill((0, 0, 0))
         self.draw_matrix(self.board, (0, 0))

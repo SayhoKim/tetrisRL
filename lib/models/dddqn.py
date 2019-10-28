@@ -74,22 +74,14 @@ class DuelingDoubleDQN():
             self.model.load_weights(cfg['DEMO']['MODELPATH'])
 
     def setup_summary(self):
-        episode_total_reward = tf.Variable(0.)
-        episode_avg_max_q = tf.Variable(0.)
-        episode_duration = tf.Variable(0.)
-        episode_avg_loss = tf.Variable(0.)
+        eps_total_reward = tf.Variable(0.)
+        eps_total_clrline = tf.Variable(0.)
 
-        tf.summary.scalar('Total Reward/Episode', episode_total_reward)
-        tf.summary.scalar('Total Clear Line/Episode', episode_avg_max_q)
-        # tf.summary.scalar('Duration/Episode', episode_duration)
-        # tf.summary.scalar('Average Loss/Episode', episode_avg_loss)
-        # tf.train.AdamOptimizer
-        summary_vars = [episode_total_reward, episode_avg_max_q,
-                        episode_duration, episode_avg_loss]
-        summary_placeholders = [tf.placeholder(tf.float32) for _ in
-                                range(len(summary_vars))]
-        update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in
-                      range(len(summary_vars))]
+        tf.summary.scalar('Total Reward/Episode', eps_total_reward)
+        tf.summary.scalar('Total Clear Line/Episode', eps_total_clrline)
+        summary_vars = [eps_total_reward, eps_total_clrline]
+        summary_placeholders = [tf.placeholder(tf.float32) for _ in range(len(summary_vars))]
+        update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in range(len(summary_vars))]
         summary_op = tf.summary.merge_all()
         return summary_placeholders, update_ops, summary_op
 
