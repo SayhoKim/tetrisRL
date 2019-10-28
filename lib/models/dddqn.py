@@ -9,10 +9,10 @@ from keras.models import Model
 
 
 class DuelingDoubleDQN():
-    def __init__(self, cfg):
+    def __init__(self, cfg, is_train=True):
         rows = cfg['ROWS']
         cols = cfg['COLUMNS']
-        if cfg['MODE'] == 'train':
+        if is_train:
             self.action_space = [i for i in range(4 * 7)]  # 28 grouped action : board 7x14
             # self.action_space = [i for i in range(4)]
             self.action_size = len(self.action_space)
@@ -59,11 +59,12 @@ class DuelingDoubleDQN():
             self.sess.run(tf.global_variables_initializer())
 
             if cfg['TRAIN']['RESUME']:
+                print('>>> Resume Training')
                 self.model.load_weights(cfg['TRAIN']['RESUMEPATH'])
 
             self.imitation_mode = False
 
-        elif cfg['MODE'] == 'test':
+        else:
             self.epsilon = 0.
             self.beta = 1.0
             self.state_size = (rows + 1, cols, 1)
@@ -72,8 +73,6 @@ class DuelingDoubleDQN():
             self.model = self.build_model()
             self.model.load_weights(cfg['TEST']['MODELPATH'])
 
-
-    # 각 에피소드 당 학습 정보를 기록
     def setup_summary(self):
         episode_total_reward = tf.Variable(0.)
         episode_avg_max_q = tf.Variable(0.)
@@ -95,7 +94,6 @@ class DuelingDoubleDQN():
         return summary_placeholders, update_ops, summary_op
 
     def build_model(self):
-
         # Dueling DQN
         state = Input(shape=(self.state_size[0], self.state_size[1], self.state_size[2],))
         x1 = Conv2D(32, (3, 3), strides=(1, 1), kernel_initializer='he_uniform', padding='same')(state)
