@@ -155,7 +155,7 @@ class DuelingDoubleDQN():
         else:
             state = np.float32(state)
             q_values = self.model.predict(state)
-            r_action = np.argmax(q_values[0])
+            # r_action = np.argmax(q_values[0])
 
             return np.argmax(q_values[0])
 
@@ -208,5 +208,3 @@ class DuelingDoubleDQN():
 
         # 샘플링한 데이터에 대해 새롭게 계산된 TD-error를 업데이트 합니다.
         self.memory.update_priorities(batch_idxes, new_priorities)
-
-        return np.mean(np.abs(err))
