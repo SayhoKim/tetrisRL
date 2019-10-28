@@ -209,4 +209,4 @@ class DuelingDoubleDQN():
         # 샘플링한 데이터에 대해 새롭게 계산된 TD-error를 업데이트 합니다.
         self.memory.update_priorities(batch_idxes, new_priorities)
 
-        return np.mean(err)
+        return np.mean(np.abs(err))

@@ -38,7 +38,7 @@ class Trainer():
             done = False
             score = 0.0
             loss = 0.0
-            ep_step = 1
+            ep_step = 0
             env.start_game()
 
             state = self.pre_processing(env.gameScreen)
@@ -120,9 +120,10 @@ class Trainer():
             if e % 10000 == 0 and e > 10000:
                 self.agent.model.save_weights("experiments/{0}/model_ep_{1}.h5".format(self.cfg['DATE'], e))
 
-            if best_loss > (loss/ep_step):
-                print('Saved Best Loss Model: {0:.6f}'.format((loss/ep_step)))
+            if ep_step > 0 and best_loss > (loss/ep_step):
+                print('Saved Best Loss Model: {0:f}'.format((loss/ep_step)))
                 self.agent.model.save_weights("experiments/{0}/model_best_loss.h5".format(self.cfg['DATE']))
+                best_loss = (loss/ep_step)
 
     def pre_processing(self, gameimage):
         # ret = np.uint8(resize(rgb2gray(gameimage), (40, 40), mode='constant')*255) # grayscale
