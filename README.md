@@ -15,7 +15,7 @@ After editing configuration file (MODELPATH):
 python main.py \
     --train False
 ```
-### Reference
+## Reference
 [Playing Atari with Deep Reinforcement Learning](https://arxiv.org/abs/1312.5602) \
 [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581) \
 [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461)
