@@ -9,7 +9,6 @@ from random import randrange as rand
 
 
 class TetrisApp(object):
-
     def __init__(self, cfg):
         super(TetrisApp, self).__init__()
         self.rows = cfg['ROWS']
@@ -26,7 +25,6 @@ class TetrisApp(object):
         self.action_space = ['LEFT','RIGHT','DOWN','UP']
         self.action_size = len(self.action_space)
         self.color = ["red", "blue", "green", "yellow", "purple"]
-        #self.color = ["red"]                  # color fix
         self.block_kind = len(self.color)
 
         self.width = self.cell_size * (self.cols + 6)
@@ -41,25 +39,22 @@ class TetrisApp(object):
         self.default_font = pygame.font.Font(
             pygame.font.get_default_font(), 12)
 
-    # display code
-
+        ##Display
         self.screen = pygame.display.set_mode((self.width, self.height))
         #self.gameScreen = pygame.surfarray.array3d(self.screen)
 
         pygame.event.set_blocked(pygame.MOUSEMOTION)  # We do not need
 
         self.stone_num = 0
-
         self.shapes = [0, 1, 2, 3, 4, 5, 6]
         self.fix_shapes = [0, 1, 2, 3, 4, 5, 6]
 
-    # stone generate : random or fixed
+        ##Stone Generator : random or fixed
         #self.next_stone = tetris_shapes[rand(len(tetris_shapes))]
         #self.next_stone = tetris_shapes[self.stone_num % len(tetris_shapes)]
         #self.next_stone = tetris_shapes[self.shapes.pop(rand(len(self.shapes)))]
         #self.next_stone = tetris_shapes[self.shapes.pop(len(self.shapes))]
         self.new_stone_flag = False
-
 
         self.init_game()
 
@@ -175,7 +170,6 @@ class TetrisApp(object):
                             self.cell_size), 0)
 
     def add_cl_lines(self, n):
-
         linescores = [0, 1, 3, 6, 10]
         self.lines += n
         self.score += linescores[n] * self.level
@@ -195,7 +189,6 @@ class TetrisApp(object):
             newdelay = 100 if newdelay < 100 else newdelay
             pygame.time.set_timer(pygame.USEREVENT + 1, newdelay)
         '''
-
 
     def move(self, delta_x):
         if not self.gameover :
@@ -260,7 +253,6 @@ class TetrisApp(object):
                     self.combo_count = 0
                 elif self.score_flag and self.block_after_score:
                     self.combo_count += 1
-
                 return True
         self.stone_y = new_y
         return False
@@ -341,10 +333,8 @@ class TetrisApp(object):
 
                     if self.num_hole(self.board) < cur_hole:
                         self.plus_score += (cur_hole-self.num_hole(self.board))/10
-
                     return True
             self.stone_y = new_y
-
         self.stone_y = new_y
         return False
 
@@ -385,7 +375,6 @@ class TetrisApp(object):
                         if board[m + i][n] == 0:
                             holes += 1
                     break
-
         return holes
 
     def toggle_pause(self):
@@ -404,7 +393,7 @@ class TetrisApp(object):
         self.game_clrline = 0
         self.score_flag = False
 
-        ##original action play
+        ##Original Action Play
         # if action==0:
         #     self.drop(True)
         # if action==1:
@@ -414,7 +403,7 @@ class TetrisApp(object):
         # if action==3:
         #     self.rotate_stone()
 
-        ##group action play
+        ##Group Action Play
         r_action = -1
         if action > 20 :
             r_action = action - 21
@@ -494,7 +483,6 @@ class TetrisApp(object):
             reward -= self.minus_score
         if self.plus_score != 0:
             reward += self.plus_score
-
         return reward, board_screen###, aa
 
     def stone_xy(self, n):
@@ -517,7 +505,6 @@ class TetrisApp(object):
             'RETURN': self.insta_drop
         }
 
-
         self.gameover = False
         self.paused = False
 
@@ -526,8 +513,7 @@ class TetrisApp(object):
         while 1:
             self.screen.fill((0, 0, 0))
             if self.gameover:
-                self.center_msg("""Game Over!\nYour score: %d
-Press space to continue""" % self.score)
+                self.center_msg("""Game Over!\nYour score: %d Press space to continue""" % self.score)
             else:
                 if self.paused:
                     self.center_msg("Paused")
