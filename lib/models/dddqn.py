@@ -52,7 +52,7 @@ class DuelingDoubleDQN():
 
             if cfg['TRAIN']['RESUME']:
                 print('>>> Resume Training')
-                self.model.load_weights(cfg['TRAIN']['RESUMEPATH'])
+                self.model.load_weights(cfg['TRAIN']['RESUMEPATH'], by_name=True, skip_mismatch=False)
         else:
             self.epsilon = 0.
             self.beta = 1.0
