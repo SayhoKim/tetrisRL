@@ -20,7 +20,6 @@ class DuelingDoubleDQN():
             self.action_space = [i for i in range(4 * self.cols)]
 
             self.action_size = len(self.action_space)
-            self.next_stone_size = 6
             self.state_size = (self.rows + 1, self.cols, 1)
 
             self.train_start = cfg['TRAIN']['TRAINSTART']
@@ -49,11 +48,11 @@ class DuelingDoubleDQN():
             self.summary_writer = tf.summary.FileWriter('experiments/{}'.format(cfg['DATE']), self.sess.graph)
             self.sess.run(tf.global_variables_initializer())
 
+            self.imitation_mode = False
+
             if cfg['TRAIN']['RESUME']:
                 print('>>> Resume Training')
                 self.model.load_weights(cfg['TRAIN']['RESUMEPATH'])
-
-            self.imitation_mode = False
         else:
             self.epsilon = 0.
             self.beta = 1.0
