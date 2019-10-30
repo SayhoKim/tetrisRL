@@ -343,30 +343,16 @@ class TetrisApp(object):
         ##Original Action Play
         # if action==0:
         #     self.drop(True)
-        # if action==1:
+        # elif action==1:
         #     self.move(-1)
-        # if action==2:
+        # elif action==2:
         #     self.move(+1)
-        # if action==3:
+        # else:
         #     self.rotate_stone()
 
         ##Group Action Play
-        r_action = -1
-        if action > 20 :
-            r_action = action - 21
-            self.n_rotate_stone(3)
-            self.move_drop(r_action-2)
-        elif action > 13 :
-            r_action = action - 14
-            self.n_rotate_stone(2)
-            self.move_drop(r_action - 2)
-        elif action > 6 :
-            r_action = action - 7
-            self.n_rotate_stone(1)
-            self.move_drop(r_action - 2)
-        else :
-            r_action = action
-            self.move_drop(r_action - 2)
+        self.n_rotate_stone(action//self.cols)
+        self.move_drop(action%self.cols - self.stone_x)
 
         self.total_clrline += self.game_clrline
 
@@ -431,12 +417,6 @@ class TetrisApp(object):
         if self.plus_score != 0:
             reward += self.plus_score
         return reward, board_screen###, aa
-
-    def stone_xy(self, n):
-        if n==0:
-            return self.stone_x
-        else:
-            return self.stone_y
 
     ##The Run is for only tetris play (not used for training)
     def run(self):

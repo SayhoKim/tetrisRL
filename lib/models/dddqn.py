@@ -10,14 +10,18 @@ from keras.models import Model
 
 class DuelingDoubleDQN():
     def __init__(self, cfg, is_train=True):
-        rows = cfg['ROWS']
-        cols = cfg['COLUMNS']
+        self.rows = cfg['ROWS']
+        self.cols = cfg['COLUMNS']
         if is_train:
-            self.action_space = [i for i in range(4 * cols)]
+            ##Original Action Play
             # self.action_space = [i for i in range(4)]
+
+            ##Group Action Play
+            self.action_space = [i for i in range(4 * self.cols)]
+
             self.action_size = len(self.action_space)
             self.next_stone_size = 6
-            self.state_size = (rows + 1, cols, 1)
+            self.state_size = (self.rows + 1, self.cols, 1)
 
             self.train_start = cfg['TRAIN']['TRAINSTART']
             self.batch_size = cfg['TRAIN']['BATCHSIZE']
@@ -54,8 +58,8 @@ class DuelingDoubleDQN():
         else:
             self.epsilon = 0.
             self.beta = 1.0
-            self.state_size = (rows + 1, cols, 1)
-            self.action_space = [i for i in range(4 * cols)]
+            self.state_size = (self.rows + 1, self.cols, 1)
+            self.action_space = [i for i in range(4 * self.cols)]
             self.action_size = len(self.action_space)
             self.model = self.build_model()
             self.model.load_weights(cfg['DEMO']['MODELPATH'])
@@ -119,20 +123,15 @@ class DuelingDoubleDQN():
 
     def get_action(self, env, state):
         if np.random.rand() <= self.epsilon:
-            if env.stone_number(env.stone) == 1:
-                return random.randrange(14)
-            elif env.stone_number(env.stone) == 4 or env.stone_number(env.stone) == 6:
-                return random.randrange(2) * 7 + random.randrange(6)
-            elif env.stone_number(env.stone) == 2 or env.stone_number(env.stone) == 5 or env.stone_number(
-                    env.stone) == 7:
-                return random.randrange(4) * 7 + random.randrange(6)
-            elif env.stone_number(env.stone) == 3:
-                return random.randrange(6)
+            if env.stone_number(env.stone) in [1, 4, 6]:
+                return  random.randrange(self.cols*2)
+            elif env.stone_number(env.stone) in [2, 5, 7]:
+                return random.randrange(self.cols*4)
+            else:
+                return random.randrange(self.cols)
         else:
             state = np.float32(state)
             q_values = self.model.predict(state)
-            # r_action = np.argmax(q_values[0])
-
             return np.argmax(q_values[0])
 
     def model_optimizer(self):
