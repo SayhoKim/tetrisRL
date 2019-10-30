@@ -36,7 +36,7 @@ class DuelingDoubleDQN():
             self.target_model = self.build_model()
             self.model_updater = self.model_optimizer()
 
-            self.memory = PrioritizedReplayBuffer(1000000, alpha=0.6)
+            self.memory = PrioritizedReplayBuffer(cfg['TRAIN']['BUFFERSIZE'], alpha=cfg['TRAIN']['ALPHA'])
             self.beta = cfg['TRAIN']['BETA']
             self.beta_max = cfg['TRAIN']['BETAMAX']
             self.beta_decay = cfg['TRAIN']['BETADECAY']
@@ -54,7 +54,6 @@ class DuelingDoubleDQN():
                 self.model.load_weights(cfg['TRAIN']['RESUMEPATH'])
 
             self.imitation_mode = False
-
         else:
             self.epsilon = 0.
             self.beta = 1.0
