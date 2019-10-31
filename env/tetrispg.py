@@ -188,55 +188,55 @@ class TetrisApp(object):
                 self.add_cl_lines(cleared_rows)
 
     def hard_drop(self):
-        while True:
-            if not self.gameover:
-                self.stone_y += 1
-                cleared_rows = 0
-                cur_hole = self.num_hole(self.board)
-                if self.check_collision(self.stone, self.stone_x, self.stone_y):
-                    self.bonus = 0
-                    self.board = self.join_matrices(self.board, self.stone, (self.stone_x, self.stone_y))
-                    if self.is_fit():
-                        self.bonus += 0.001
-                    self.new_stone()
+        while not self.gameover:
+            self.stone_y += 1
+            cleared_rows = 0
+            cur_hole = self.num_hole(self.board)
+            if self.check_collision(self.stone, self.stone_x, self.stone_y):
+                self.bonus = 0
+                prev = np.array(self.board)
+                self.board = self.join_matrices(self.board, self.stone, (self.stone_x, self.stone_y))
+                self.bonus += (0.001*self.is_fit(prev))
+                self.new_stone()
 
-                    for i, row in enumerate(self.board[:-1]):
-                        if 0 not in row:
-                            self.board = self.remove_row(i)
-                            self.bonus += i / 10000
-                            cleared_rows += 1
+                for i, row in enumerate(self.board[:-1]):
+                    if 0 not in row:
+                        self.board = self.remove_row(i)
+                        self.bonus += i / 10000
+                        cleared_rows += 1
 
-                    self.game_clrline = cleared_rows
-                    self.add_cl_lines(cleared_rows)
+                self.game_clrline = cleared_rows
+                self.add_cl_lines(cleared_rows)
 
-                    ##Combo check
-                    if cleared_rows > 1:
-                        self.bonus += 0.011*cleared_rows
-                        print('{}!!!'.format(self.lineclr[cleared_rows-1]))
-                    if self.combo and cleared_rows:
-                        self.bonus += 0.01*self.combo
-                        self.combo += 1
-                        print('{} Combo!!!'.format(self.combo))
-                    elif cleared_rows:
-                        self.combo += 1
-                    else:
-                        self.combo = 0
+                ##Combo check
+                if cleared_rows > 1:
+                    self.bonus += 0.011*cleared_rows
+                    print('{}!!!'.format(self.lineclr[cleared_rows-1]))
+                if self.combo and cleared_rows:
+                    self.bonus += 0.01*self.combo
+                    self.combo += 1
+                    print('{} Combo!!!'.format(self.combo))
+                elif cleared_rows:
+                    self.combo += 1
+                else:
+                    self.combo = 0
 
-                    ##Clear check
-                    if np.sum(self.board) - self.cols == 0:
-                        self.bonus += 0.1
-                        print("Perfect Clear!!!")
+                ##Clear check
+                if np.sum(self.board) - self.cols == 0:
+                    self.bonus += 0.1
+                    print("Perfect Clear!!!")
 
-                    ##Hole score
-                    self.bonus += 0.01**self.num_hole(self.board)
-                    if self.num_hole(self.board) < cur_hole:
-                        self.bonus += (cur_hole-self.num_hole(self.board))/10
+                ##Hole score
+                self.bonus += 0.01**self.num_hole(self.board)
+                if self.num_hole(self.board) < cur_hole:
+                    self.bonus += (cur_hole-self.num_hole(self.board))/10
 
-                    ##Bumpiness
-                    argboard = np.argwhere(np.array(self.board) == 1)
-                    if argboard.shape[0] > 10:
-                        bumpiness = argboard[-self.cols-1][0] - argboard[0][0]
-                        self.bonus += 0.01**bumpiness
+                ##Bumpiness
+                argboard = np.argwhere(np.array(self.board) == 1)
+                if argboard.shape[0] > 10:
+                    bumpiness = argboard[-self.cols-1][0] - argboard[0][0]
+                    self.bonus += 0.01**bumpiness
+                break
 
     def insta_drop(self):
         if not self.gameover and not self.paused:
@@ -419,13 +419,23 @@ class TetrisApp(object):
                     return True
         return False
 
-    def is_fit(self):
-        for m in range(len(self.stone)):
-            for n in range(len(self.stone[0])):
-                if self.stone[m][n] > 0:
-                    if self.board[self.stone_y+m][self.stone_x+n] == 0:
-                        return False
-        return True
+    def is_fit(self, prev):
+        board = np.array(self.board)
+        stone_pos = np.argwhere(prev!=board)
+        canvas = np.zeros(prev.shape, dtype=bool)
+        for sp in stone_pos:
+            x, y = sp
+            try: canvas[x+1, y] = True
+            except: pass
+            try: canvas[x-1, y] = True
+            except: pass
+            try: canvas[x, y+1] = True
+            except: pass
+            try: canvas[x, y-1] = True
+            except: pass
+        canvas = canvas ^ (prev!=board)
+        canvas[-1] = False
+        return np.count_nonzero(board[canvas]!=0)
 
     def remove_row(self, row):
         del self.board[row]
