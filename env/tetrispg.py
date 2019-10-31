@@ -31,13 +31,13 @@ class TetrisApp(object):
         self.rlim = self.cell_size * self.cols
         self.bground_grid = [[0 for c in range(self.cols)] for r in range(self.rows)]
 
-        self.stone_num = 0
+        self.num_stone = 0
         self.shapes = [0, 1, 2, 3, 4, 5, 6]
         self.fix_shapes = [0, 1, 2, 3, 4, 5, 6]
 
         ##Stone Generator : random or fixed
         # self.next_stone = tetris_shapes[rand(len(tetris_shapes))]
-        # self.next_stone = tetris_shapes[self.stone_num % len(tetris_shapes)]
+        # self.next_stone = tetris_shapes[self.num_stone % len(tetris_shapes)]
         # self.next_stone = tetris_shapes[self.shapes.pop(rand(len(self.shapes)))]
         # self.next_stone = tetris_shapes[self.shapes.pop(len(self.shapes))]
 
@@ -58,7 +58,7 @@ class TetrisApp(object):
     def new_stone(self):
         self.new_stone_flag = True
         self.stone = self.next_stone[:]
-        self.stone_num += 1
+        self.num_stone += 1
 
         if len(self.shapes) == 0:
             self.fix_shapes = self.rotate(self.fix_shapes, (rand(3) * 2))
@@ -74,11 +74,9 @@ class TetrisApp(object):
         if self.check_collision(self.stone, self.stone_x, self.stone_y):
             self.gameover = True
 
-    def stone_number(self, stone):
-        if stone[0][0] > 0:
-            return stone[0][0]
-        else :
-            return stone[0][1]
+    def stone_number(self):
+        stone = np.array(self.stone)
+        return np.mean(stone[stone!=0], dtype=int)
 
     def init_game(self):
         self.board = self.new_board()
@@ -162,7 +160,6 @@ class TetrisApp(object):
                 new_x = self.cols - len(self.stone[0])
             if not self.check_collision(self.stone, new_x, self.stone_y):
                 self.stone_x = new_x
-        return False
 
     def move_drop(self, n):
         self.move(n)
@@ -189,9 +186,6 @@ class TetrisApp(object):
 
                 self.game_clrline = cleared_rows
                 self.add_cl_lines(cleared_rows)
-
-                return True
-        return False
 
     def hard_drop(self):
         while True:
@@ -243,8 +237,6 @@ class TetrisApp(object):
                     if argboard.shape[0] > 10:
                         bumpiness = argboard[-self.cols-1][0] - argboard[0][0]
                         self.bonus += 0.01**bumpiness
-                    return True
-        return False
 
     def insta_drop(self):
         if not self.gameover and not self.paused:

@@ -121,9 +121,9 @@ class DuelingDoubleDQN():
 
     def get_action(self, env, state):
         if np.random.rand() <= self.epsilon:
-            if env.stone_number(env.stone) in [1, 4, 6]:
+            if env.stone_number() in [1, 4, 6]:
                 return  random.randrange(self.cols*2)
-            elif env.stone_number(env.stone) in [2, 5, 7]:
+            elif env.stone_number() in [2, 5, 7]:
                 return random.randrange(self.cols*4)
             else:
                 return random.randrange(self.cols)
