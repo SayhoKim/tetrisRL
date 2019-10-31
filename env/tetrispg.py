@@ -227,15 +227,15 @@ class TetrisApp(object):
                     print("Perfect Clear!!!")
 
                 ##Hole score
-                self.bonus += 0.01**self.num_hole(self.board)
+                self.bonus -= 0.001*self.num_hole(self.board)
                 if self.num_hole(self.board) < cur_hole:
-                    self.bonus += (cur_hole-self.num_hole(self.board))/10
+                    self.bonus += (cur_hole-self.num_hole(self.board))/100
 
                 ##Bumpiness
                 argboard = np.argwhere(np.array(self.board) == 1)
                 if argboard.shape[0] > 10:
                     bumpiness = argboard[-self.cols-1][0] - argboard[0][0]
-                    self.bonus += 0.01**bumpiness
+                    self.bonus -= 0.0001*bumpiness
                 break
 
     def insta_drop(self):
