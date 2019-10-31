@@ -182,14 +182,11 @@ class TetrisApp(object):
                 self.board = self.join_matrices(self.board, self.stone, (self.stone_x, self.stone_y))
                 self.new_stone()
 
-                while True:
-                    for i, row in enumerate(self.board[:-1]):
-                        if 0 not in row:
-                            self.board = self.remove_row(i)
-                            cleared_rows += 1
-                            break
-                    else:
-                        break
+                for i, row in enumerate(self.board[:-1]):
+                    if 0 not in row:
+                        self.board = self.remove_row(i)
+                        cleared_rows += 1
+
                 self.game_clrline = cleared_rows
                 self.add_cl_lines(cleared_rows)
 
@@ -205,24 +202,23 @@ class TetrisApp(object):
                 if self.check_collision(self.stone, self.stone_x, self.stone_y):
                     self.bonus = 0
                     self.board = self.join_matrices(self.board, self.stone, (self.stone_x, self.stone_y))
+                    if self.is_fit():
+                        self.bonus += 0.001
                     self.new_stone()
 
-                    while True:
-                        for i, row in enumerate(self.board[:-1]):
-                            if 0 not in row:
-                                self.board = self.remove_row(i)
-                                self.bonus += i / 10000
-                                cleared_rows += 1
-                                break
-                        else:
-                            break
+                    for i, row in enumerate(self.board[:-1]):
+                        if 0 not in row:
+                            self.board = self.remove_row(i)
+                            self.bonus += i / 10000
+                            cleared_rows += 1
+
                     self.game_clrline = cleared_rows
                     self.add_cl_lines(cleared_rows)
 
                     ##Combo check
                     if cleared_rows > 1:
                         self.bonus += 0.011*cleared_rows
-                        print('{}!!!'.format(self.lineclr[cleared_rows]))
+                        print('{}!!!'.format(self.lineclr[cleared_rows-1]))
                     if self.combo and cleared_rows:
                         self.bonus += 0.01*self.combo
                         self.combo += 1
@@ -430,6 +426,14 @@ class TetrisApp(object):
                 except IndexError:
                     return True
         return False
+
+    def is_fit(self):
+        for m in range(len(self.stone)):
+            for n in range(len(self.stone[0])):
+                if self.stone[m][n] > 0:
+                    if self.board[self.stone_y+m][self.stone_x+n] == 0:
+                        return False
+        return True
 
     def remove_row(self, row):
         del self.board[row]
