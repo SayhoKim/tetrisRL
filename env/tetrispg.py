@@ -41,6 +41,8 @@ class TetrisApp(object):
         # self.next_stone = tetris_shapes[self.shapes.pop(rand(len(self.shapes)))]
         # self.next_stone = tetris_shapes[self.shapes.pop(len(self.shapes))]
 
+        self.lineclr = ['Single', 'Double', 'Triple', 'Tetris']
+
         self.new_stone_flag = False
         self.gameover = False
         self.paused = False
@@ -69,7 +71,7 @@ class TetrisApp(object):
             self.stone_x = int(self.cols / 2 - (len(self.stone[0])-1) / 2)
         self.stone_y = 0
 
-        if self.check_collision(self.board, self.stone, (self.stone_x, self.stone_y)):
+        if self.check_collision(self.stone, self.stone_x, self.stone_y):
             self.gameover = True
 
     def stone_number(self, stone):
@@ -102,16 +104,11 @@ class TetrisApp(object):
                     board_screen[self.stone_y + m][self.stone_x + n] = self.stone[m][n]
 
         self.gameScreen = board_screen
-        global game_score
-        game_score =0
-        self.score_flag = False
-        self.combo_score_flag = False
-        self.allclear_score_flag = False
-        self.combo_count = 0
-        self.block_after_score = False
 
-        self.minus_score = 0
-        self.plus_score = 0
+        global game_score
+        game_score = 0
+        self.bonus = 0
+        self.combo = 0
 
         ##Timer Settings
         self.draw_matrix(self.board, (0, 0))
@@ -149,11 +146,6 @@ class TetrisApp(object):
         global game_score
         game_score += linescores[n]
 
-        if linescores[n] > 0:
-            self.score_flag = True
-        else :
-            self.score_flag = False
-
         if self.lines >= self.level * 6:
             self.level += 1
             ##Game speed delay
@@ -168,38 +160,32 @@ class TetrisApp(object):
                 new_x = 0
             if new_x > self.cols - len(self.stone[0]):
                 new_x = self.cols - len(self.stone[0])
-            if not self.check_collision(self.board,
-                                        self.stone,
-                                       (new_x, self.stone_y)):
+            if not self.check_collision(self.stone, new_x, self.stone_y):
                 self.stone_x = new_x
         return False
 
     def move_drop(self, n):
         self.move(n)
-        self.hard_drop(True)
-        # self.drop(True)
+        self.hard_drop()
+        # self.drop()
 
     def quit(self):
         self.center_msg("Exiting...")
         pygame.display.update()
         sys.exit()
 
-    def drop(self, manual):
-        new_y = self.stone_y
+    def drop(self):
         if not self.gameover :
-            new_y = self.stone_y + 1
+            self.stone_y += 1
             cleared_rows = 0
-            if self.check_collision(self.board, self.stone, (self.stone_x, new_y)):
-                self.board = self.join_matrixes(self.board, self.stone, (self.stone_x, new_y))
-
-                if new_y < self.rows/2 :
-                    self.minus_score = (1-new_y/10)/20
-
+            if self.check_collision(self.stone, self.stone_x, self.stone_y):
+                self.board = self.join_matrices(self.board, self.stone, (self.stone_x, self.stone_y))
                 self.new_stone()
+
                 while True:
                     for i, row in enumerate(self.board[:-1]):
                         if 0 not in row:
-                            self.board = self.remove_row(self.board, i)
+                            self.board = self.remove_row(i)
                             cleared_rows += 1
                             break
                     else:
@@ -207,60 +193,25 @@ class TetrisApp(object):
                 self.game_clrline = cleared_rows
                 self.add_cl_lines(cleared_rows)
 
-                ##Combo check
-                if self.score_flag and not self.block_after_score:
-                    self.block_after_score = True
-                    self.combo_count += 1
-                elif not self.score_flag and self.block_after_score:
-                    self.block_after_score = False
-                    self.combo_count = 0
-                elif self.score_flag and self.block_after_score:
-                    self.combo_count += 1
                 return True
-        self.stone_y = new_y
         return False
 
-    def hard_drop(self, manual):
-        while 1 :
-            new_y = self.stone_y
+    def hard_drop(self):
+        while True:
             if not self.gameover:
-                new_y = self.stone_y + 1
+                self.stone_y += 1
                 cleared_rows = 0
                 cur_hole = self.num_hole(self.board)
-                if self.check_collision(self.board, self.stone, (self.stone_x, new_y)):
-                    board_top = 0
-
-                    self.minus_score = 0
-                    self.plus_score = 0
-
-                    for i in range(self.rows):
-                        for j in range(self.cols):
-                            if self.board[i][j] > 0:
-                                board_top = i
-                                break
-                        if board_top != 0:
-                            break
-                    if board_top == 0:
-                        board_top = self.rows+1
-
-                    if new_y > board_top:
-                        self.plus_score += 0.05
-
-                    self.board = self.join_matrixes(self.board, self.stone, (self.stone_x, new_y))
-
-                    if new_y < self.rows / 2:
-                        self.minus_score = (1 - new_y / self.rows) / 10
-
-                    if self.chk_block_fit(self.stone, self.stone_x, self.stone_y, self.board):
-                        self.plus_score += 0.01
-                    else :
-                        self.minus_score += 0.01
-
+                if self.check_collision(self.stone, self.stone_x, self.stone_y):
+                    self.bonus = 0
+                    self.board = self.join_matrices(self.board, self.stone, (self.stone_x, self.stone_y))
                     self.new_stone()
+
                     while True:
                         for i, row in enumerate(self.board[:-1]):
                             if 0 not in row:
-                                self.board = self.remove_row(self.board, i)
+                                self.board = self.remove_row(i)
+                                self.bonus += i / 10000
                                 cleared_rows += 1
                                 break
                         else:
@@ -269,53 +220,51 @@ class TetrisApp(object):
                     self.add_cl_lines(cleared_rows)
 
                     ##Combo check
-                    if self.score_flag and not self.block_after_score:
-                        self.block_after_score = True
-                        self.combo_count += 1
-                    elif not self.score_flag and self.block_after_score:
-                        self.block_after_score = False
-                        self.combo_count = 0
-                    elif self.score_flag and self.block_after_score:
-                        self.combo_count += 1
+                    if cleared_rows > 1:
+                        self.bonus += 0.011*cleared_rows
+                        print('{}!!!'.format(self.lineclr[cleared_rows]))
+                    if self.combo and cleared_rows:
+                        self.bonus += 0.01*self.combo
+                        self.combo += 1
+                        print('{} Combo!!!'.format(self.combo))
+                    elif cleared_rows:
+                        self.combo += 1
+                    else:
+                        self.combo = 0
+
+                    ##Clear check
+                    if np.sum(self.board) - self.cols == 0:
+                        self.bonus += 0.1
+                        print("Perfect Clear!!!")
 
                     ##Hole score
-                    self.minus_score += self.num_hole(self.board)/1000
+                    self.bonus += 0.01**self.num_hole(self.board)
                     if self.num_hole(self.board) < cur_hole:
-                        self.plus_score += (cur_hole-self.num_hole(self.board))/10
+                        self.bonus += (cur_hole-self.num_hole(self.board))/10
 
                     ##Bumpiness
                     argboard = np.argwhere(np.array(self.board) == 1)
                     if argboard.shape[0] > 10:
                         bumpiness = argboard[-self.cols-1][0] - argboard[0][0]
-                        self.minus_score += bumpiness / 1000
+                        self.bonus += 0.01**bumpiness
                     return True
-            self.stone_y = new_y
-        self.stone_y = new_y
         return False
 
     def insta_drop(self):
         if not self.gameover and not self.paused:
-            while (not self.drop(True)):
+            while (not self.drop()):
                 pass
 
     def rotate_stone(self):
         if not self.gameover and not self.paused:
-            new_stone = self.rotate_clockwise(self.stone)
-            if not self.check_collision(self.board, new_stone, (self.stone_x, self.stone_y)):
+            new_stone = self.rotate_clockwise()
+            if not self.check_collision(new_stone, self.stone_x, self.stone_y):
                 self.stone = new_stone
 
     def n_rotate_stone(self, n):
         self.new_stone_flag = False
         for i in range(n) :
             self.rotate_stone()
-
-    def chk_block_fit(self, stone, x, y, board):
-        for m in range(len(stone)):
-            for n in range(len(stone[0])):
-                if stone[m][n] > 0:
-                    if board[y+m+1][x+n] == 0:
-                        return False
-        return True
 
     def num_hole(self, board):
         holes = 0
@@ -338,15 +287,13 @@ class TetrisApp(object):
 
     ##The step is for model training
     def step(self, action):
-        self.minus_score = 0
-        self.plus_score = 0
+        self.bonus = 0
         post_score = game_score
         self.game_clrline = 0
-        self.score_flag = False
 
         ##Original Action Play
         # if action==0:
-        #     self.drop(True)
+        #     self.drop()
         # elif action==1:
         #     self.move(-1)
         # elif action==2:
@@ -390,37 +337,12 @@ class TetrisApp(object):
         if self.next_stone_flat[0] == 1:
             self.next_stone_flat = self.next_stone_flat + [0, 0]
 
-        ##Check the board floor is blank or not
-        floor = 0
-        for k in range(len(board_screen[0])):
-            floor += board_screen[self.rows-1][k]
-
         self.gameScreen = board_screen
         reward = game_score - post_score
 
-        ##Reward for board all clear
-        if self.allclear_score_flag and reward == 0:
-            reward += 1
-            self.allclear_score_flag = False
-            print("All Clear!!!")
-        if floor == 0 and self.score_flag:
-            self.allclear_score_flag = True
-
-        ##Reward for combo
-        if self.combo_score_flag and reward == 0:
-            reward += 0.2
-            self.combo_score_flag = False
-            print((self.combo_count-1),"Combo!!!")
-        if self.combo_count > 1 and self.score_flag:
-            self.combo_score_flag = True
-
-        self.score_flag = False
-
-        if self.minus_score != 0:
-            reward -= self.minus_score
-        if self.plus_score != 0:
-            reward += self.plus_score
-        return reward, board_screen###, aa
+        if self.bonus != 0:
+            reward += self.bonus
+        return reward, board_screen
 
     ##The Run is for only tetris play (not used for training)
     def run(self):
@@ -428,8 +350,8 @@ class TetrisApp(object):
             'ESCAPE': self.quit,
             'LEFT': lambda: self.move(-1),
             'RIGHT': lambda: self.move(+1),
-            'DOWN': lambda: self.hard_drop(True),
-            # 'DOWN': lambda: self.drop(True),
+            'DOWN': lambda: self.hard_drop(),
+            # 'DOWN': lambda: self.drop(),
             'UP': self.rotate_stone,
             'p': self.toggle_pause,
             'SPACE': self.start_game,
@@ -440,7 +362,7 @@ class TetrisApp(object):
         self.paused = False
         clock = pygame.time.Clock()
 
-        while 1:
+        while True:
             self.screen.fill((0, 0, 0))
             if self.gameover:
                 self.center_msg("""Game Over!\nYour score: %d Press space to continue""" % self.score)
@@ -475,13 +397,11 @@ class TetrisApp(object):
 
             for event in pygame.event.get():
                 if event.type == pygame.USEREVENT + 1:
-                    self.drop(False)
+                    self.drop()
                 elif event.type == pygame.QUIT:
                     self.quit()
                 elif event.type == pygame.KEYDOWN:
-
                     for key in key_actions:
-                        current_score = copy.deepcopy(self.score)
                         if event.key == eval("pygame.K_" + key):
                             key_actions[key]()
                             board_screen = copy.deepcopy(self.board)
@@ -491,55 +411,31 @@ class TetrisApp(object):
                                 for n in range(stone_n):
                                     if self.stone[m][n] != 0:
                                         board_screen[self.stone_y + m][self.stone_x + n] = self.stone[m][n]
-
-                            ##Check the board floor is blank or not
-                            floor = 0
-                            for k in range(len(board_screen[0])):
-                                floor += board_screen[self.rows - 1][k]
-
-                            reward = self.score - current_score
-
-                            ##Reward for board all clear
-                            if self.allclear_score_flag and reward == 0:
-                                self.allclear_score_flag = False
-                                print("All Clear!!!")
-                            if floor == 0 and self.score_flag:
-                                self.allclear_score_flag = True
-
-                            ##Reward for combo
-                            if self.combo_score_flag and reward == 0:
-                                self.combo_score_flag = False
-                                print((self.combo_count - 1), "Combo!!!")
-                            if self.combo_count > 1 and self.score_flag:
-                                self.combo_score_flag = True
-
-                            self.score_flag = False
             clock.tick(self.maxfps)
 
     def rotate(self, l, n):
         return l[n:] + l[:n]
 
-    def rotate_clockwise(self, shape):
-        return [[shape[y][x]
-                 for y in range(len(shape))]
-                for x in range(len(shape[0]) - 1, -1, -1)]
+    def rotate_clockwise(self):
+        return [[self.stone[y][x]
+                 for y in range(len(self.stone))]
+                for x in range(len(self.stone[0]) - 1, -1, -1)]
 
-    def check_collision(self, board, shape, offset):
-        off_x, off_y = offset
+    def check_collision(self, shape, offset_x, offset_y):
         for cy, row in enumerate(shape):
             for cx, cell in enumerate(row):
                 try:
-                    if cell and board[cy + off_y][cx + off_x]:
+                    if cell and self.board[cy + offset_y][cx + offset_x]:
                         return True
                 except IndexError:
                     return True
         return False
 
-    def remove_row(self, board, row):
-        del board[row]
-        return [[0 for i in range(self.cols)]] + board
+    def remove_row(self, row):
+        del self.board[row]
+        return [[0 for i in range(self.cols)]] + self.board
 
-    def join_matrixes(self, mat1, mat2, mat2_off):
+    def join_matrices(self, mat1, mat2, mat2_off):
         off_x, off_y = mat2_off
         for cy, row in enumerate(mat2):
             for cx, val in enumerate(row):
