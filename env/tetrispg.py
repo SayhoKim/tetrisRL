@@ -196,7 +196,7 @@ class TetrisApp(object):
                 self.bonus = 0
                 prev = np.array(self.board)
                 self.board = self.join_matrices(self.board, self.stone, (self.stone_x, self.stone_y))
-                self.bonus += (0.001*self.is_fit(prev))
+                self.bonus += (0.001*self.fit_count(prev))
                 self.new_stone()
 
                 for i, row in enumerate(self.board[:-1]):
@@ -419,7 +419,7 @@ class TetrisApp(object):
                     return True
         return False
 
-    def is_fit(self, prev):
+    def fit_count(self, prev):
         board = np.array(self.board)
         stone_pos = np.argwhere(prev!=board)
         canvas = np.zeros(prev.shape, dtype=bool)
@@ -434,7 +434,6 @@ class TetrisApp(object):
             try: canvas[x, y-1] = True
             except: pass
         canvas = canvas ^ (prev!=board)
-        canvas[-1] = False
         return np.count_nonzero(board[canvas]!=0)
 
     def remove_row(self, row):
