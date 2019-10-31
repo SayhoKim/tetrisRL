@@ -1,5 +1,5 @@
 import copy
-import numpy
+import numpy as np
 import pygame
 import sys
 import time
@@ -280,11 +280,15 @@ class TetrisApp(object):
 
                     ##Hole score
                     self.minus_score += self.num_hole(self.board)/1000
-
                     if self.num_hole(self.board) < cur_hole:
                         self.plus_score += (cur_hole-self.num_hole(self.board))/10
-                    return True
 
+                    ##Bumpiness
+                    argboard = np.argwhere(np.array(self.board) == 1)
+                    if argboard.shape[0] > 10:
+                        bumpiness = argboard[-self.cols-1][0] - argboard[0][0]
+                        self.minus_score += bumpiness / 1000
+                    return True
             self.stone_y = new_y
         self.stone_y = new_y
         return False
