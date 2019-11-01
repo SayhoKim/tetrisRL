@@ -202,7 +202,7 @@ class TetrisApp(object):
                 for i, row in enumerate(self.board[:-1]):
                     if 0 not in row:
                         self.board = self.remove_row(i)
-                        self.bonus += i/10000
+                        self.bonus += i/1000
                         cleared_rows += 1
 
                 self.game_clrline = cleared_rows
@@ -227,7 +227,7 @@ class TetrisApp(object):
                     print("Perfect Clear!!!")
 
                 ##Hole score
-                self.bonus -= 0.0001*self.num_hole(self.board)
+                self.bonus += 0.001**self.num_hole(self.board)
                 if self.num_hole(self.board) < cur_hole:
                     self.bonus += (cur_hole-self.num_hole(self.board))/1000
 
@@ -235,7 +235,7 @@ class TetrisApp(object):
                 argboard = np.argwhere(np.array(self.board) != 0)
                 if argboard.shape[0] > 10:
                     bumpiness = argboard[-self.cols-1][0] - argboard[0][0]
-                    self.bonus -= 0.0001*bumpiness
+                    self.bonus += 0.001**bumpiness
                 break
 
     def insta_drop(self):

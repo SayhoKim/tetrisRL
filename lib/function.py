@@ -1,6 +1,7 @@
 import copy
 import numpy as np
 import pygame
+import time
 
 from datetime import datetime
 from env.tetrispg import TetrisApp
