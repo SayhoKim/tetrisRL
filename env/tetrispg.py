@@ -227,9 +227,9 @@ class TetrisApp(object):
                     print("Perfect Clear!!!")
 
                 ##Hole score
-                self.bonus -= 0.001*self.num_hole(self.board)
+                self.bonus -= 0.0001*self.num_hole(self.board)
                 if self.num_hole(self.board) < cur_hole:
-                    self.bonus += (cur_hole-self.num_hole(self.board))/100
+                    self.bonus += (cur_hole-self.num_hole(self.board))/1000
 
                 ##Bumpiness
                 argboard = np.argwhere(np.array(self.board) == 1)
