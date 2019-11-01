@@ -191,12 +191,11 @@ class TetrisApp(object):
         while not self.gameover:
             self.stone_y += 1
             cleared_rows = 0
-            cur_hole = self.num_hole(self.board)
             if self.check_collision(self.stone, self.stone_x, self.stone_y):
                 self.bonus = 0
                 prev = np.array(self.board)
                 self.board = self.join_matrices(self.board, self.stone, (self.stone_x, self.stone_y))
-                self.bonus += (0.0001*self.fit_count(prev))
+                self.bonus += (0.01*self.fit_count(prev))
                 self.new_stone()
 
                 for i, row in enumerate(self.board[:-1]):
@@ -225,16 +224,6 @@ class TetrisApp(object):
                 if np.sum(self.board) - self.cols == 0:
                     self.bonus += 0.1
                     print("Perfect Clear!!!")
-
-                ##Hole score
-                # self.bonus += 0.001**self.num_hole(self.board)
-                # if self.num_hole(self.board) < cur_hole:
-                #     self.bonus += (cur_hole-self.num_hole(self.board))/1000
-
-                ##Bumpiness
-                argboard = np.argwhere(np.array(self.board) != 0)
-                mean_x, mean_y = np.mean(argboard[:-self.cols], axis=0)
-                self.bonus += (0.0001*mean_x)
                 break
 
     def insta_drop(self):
@@ -421,19 +410,28 @@ class TetrisApp(object):
     def fit_count(self, prev):
         board = np.array(self.board)
         stone_pos = np.argwhere(prev!=board)
-        canvas = np.zeros(prev.shape, dtype=bool)
+        canvas_1 = np.zeros(prev.shape, dtype=bool)
         for sp in stone_pos:
             x, y = sp
-            try: canvas[x+1, y] = True
+            try: canvas_1[x+1, y] = True
             except: pass
-            try: canvas[x-1, y] = True
+            try: canvas_1[x-1, y] = True
             except: pass
-            try: canvas[x, y+1] = True
+            try: canvas_1[x, y+1] = True
             except: pass
-            try: canvas[x, y-1] = True
+            try: canvas_1[x, y-1] = True
             except: pass
-        canvas = canvas^(prev!=board)
-        return np.count_nonzero(board[canvas]!=0)
+        canvas_1 = canvas_1^(prev!=board)
+        canvas_2 = np.zeros(prev.shape, dtype=int)
+        prev_pose = np.argwhere(prev != 0)
+        for pp in prev_pose:
+            x, y = pp
+            canvas_2[x:, y] = 1
+        fit = 1 if stone_pos[-1, 0] == np.argwhere(canvas_2!=0)[-1, 0] else 0
+        canvas_2 = canvas_2|board
+        hole_cnt = self.num_hole(canvas_2)
+
+        return np.count_nonzero(board[canvas_1]!=0) + fit - (0.1*hole_cnt)
 
     def remove_row(self, row):
         del self.board[row]
