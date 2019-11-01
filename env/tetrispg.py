@@ -196,13 +196,13 @@ class TetrisApp(object):
                 self.bonus = 0
                 prev = np.array(self.board)
                 self.board = self.join_matrices(self.board, self.stone, (self.stone_x, self.stone_y))
-                self.bonus += (0.0005*(2**self.fit_count(prev)))
+                self.bonus += (0.0001*self.fit_count(prev))
                 self.new_stone()
 
                 for i, row in enumerate(self.board[:-1]):
                     if 0 not in row:
                         self.board = self.remove_row(i)
-                        self.bonus += i / 10000
+                        self.bonus += i/10000
                         cleared_rows += 1
 
                 self.game_clrline = cleared_rows
@@ -433,7 +433,7 @@ class TetrisApp(object):
             except: pass
             try: canvas[x, y-1] = True
             except: pass
-        canvas = canvas ^ (prev!=board)
+        canvas = canvas^(prev!=board)
         return np.count_nonzero(board[canvas]!=0)
 
     def remove_row(self, row):
