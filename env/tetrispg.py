@@ -210,10 +210,10 @@ class TetrisApp(object):
 
                 ##Combo check
                 if cleared_rows > 1:
-                    self.bonus += 0.005*(2**cleared_rows)
+                    self.bonus += 0.01*cleared_rows
                     print('{}!!!'.format(self.lineclr[cleared_rows-1]))
                 if self.combo and cleared_rows:
-                    self.bonus += 0.005*(2**(self.combo-1))
+                    self.bonus += 0.01*(self.combo-1)
                     self.combo += 1
                     print('{} Combo!!!'.format(self.combo-1))
                 elif cleared_rows:
@@ -232,7 +232,7 @@ class TetrisApp(object):
                     self.bonus += (cur_hole-self.num_hole(self.board))/1000
 
                 ##Bumpiness
-                argboard = np.argwhere(np.array(self.board) == 1)
+                argboard = np.argwhere(np.array(self.board) != 0)
                 if argboard.shape[0] > 10:
                     bumpiness = argboard[-self.cols-1][0] - argboard[0][0]
                     self.bonus -= 0.0001*bumpiness
