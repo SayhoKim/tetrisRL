@@ -196,7 +196,7 @@ class TetrisApp(object):
                 self.bonus = 0
                 prev = np.array(self.board)
                 self.board = self.join_matrices(self.board, self.stone, (self.stone_x, self.stone_y))
-                self.bonus += (0.001*self.fit_count(prev))
+                self.bonus += (0.0005*(2**self.fit_count(prev)))
                 self.new_stone()
 
                 for i, row in enumerate(self.board[:-1]):
@@ -210,12 +210,12 @@ class TetrisApp(object):
 
                 ##Combo check
                 if cleared_rows > 1:
-                    self.bonus += 0.011*cleared_rows
+                    self.bonus += 0.005*(2**cleared_rows)
                     print('{}!!!'.format(self.lineclr[cleared_rows-1]))
                 if self.combo and cleared_rows:
-                    self.bonus += 0.01*self.combo
+                    self.bonus += 0.005*(2**(self.combo-1))
                     self.combo += 1
-                    print('{} Combo!!!'.format(self.combo))
+                    print('{} Combo!!!'.format(self.combo-1))
                 elif cleared_rows:
                     self.combo += 1
                 else:
