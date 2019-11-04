@@ -126,7 +126,7 @@ class Trainer(Base):
                 next_state = self.pre_processing(env.gameScreen)
 
                 ##Save PER Memory
-                self.memory.add(state, action, reward, next_state, float(done))
+                self.memory.add(state[0], action, reward, next_state[0], float(done))
 
                 if self.global_step > self.train_start:
                     update_train_step += 1
