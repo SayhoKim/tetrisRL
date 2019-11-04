@@ -1,4 +1,3 @@
-import copy
 import keras.backend as K
 import numpy as np
 import pygame
@@ -14,14 +13,17 @@ from lib.models.ddqn import DuelingDQN
 from lib.utils.replay_buffer import PrioritizedReplayBuffer
 
 
-class Base():
+class Base(object):
     def __init__(self, cfg):
-        self.cfg = dict()
-        self.rows = int()
-        self.cols = int()
+        super(Base, self).__init__()
+        self.cfg = cfg
+        self.rows = cfg['ROWS']
+        self.cols = cfg['COLUMNS']
         self.epsilon = 0
         self.beta = 1.0
-        self.model = object()
+
+        self.ddqn = DuelingDQN(cfg)
+        self.model = self.ddqn.build_model()
 
     def pre_processing(self, gameimage):
         board = np.array(gameimage)
@@ -31,9 +33,9 @@ class Base():
     def get_action(self, env, state):
         if np.random.rand() <= self.epsilon:
             # return random.randrange(self.action_size)
-            if env.stone_number() in [1, 4, 6]:
+            if env.block_number() in [1, 4, 6]:
                 return random.randrange(self.cols * 2)
-            elif env.stone_number() in [2, 5, 7]:
+            elif env.block_number() in [2, 5, 7]:
                 return random.randrange(self.cols * 4)
             else:
                 return random.randrange(self.cols)
@@ -45,11 +47,8 @@ class Base():
 
 class Trainer(Base):
     def __init__(self, cfg):
-        super().__init__(Base)
-        cfg['DATE'] = datetime.now().strftime('%y%m%d_%H%M%S')
-        self.cfg = cfg
-        self.rows = cfg['ROWS']
-        self.cols = cfg['COLUMNS']
+        super(Trainer, self).__init__(cfg)
+        self.cfg['DATE'] = datetime.now().strftime('%y%m%d_%H%M%S')
         self.global_step = 0
         self.scores, self.episodes = [], []
 
@@ -64,8 +63,6 @@ class Trainer(Base):
         self.epsilon_step = cfg['TRAIN']['EPSILONSTEP']
         self.epsilon_step_decay = cfg['TRAIN']['EPSILONSTEPDECAY']
 
-        self.ddqn = DuelingDQN(cfg)
-        self.model = self.ddqn.build_model()
         self.target_model = self.ddqn.build_model()
 
         if cfg['TRAIN']['RESUME']:
@@ -101,20 +98,18 @@ class Trainer(Base):
         pygame.init()
 
         for e in range(EPISODES):
-            done = False
             score = 0.0
-            env.start_game()
+            env.start()
 
-            state = self.pre_processing(env.gameScreen)
+            state = self.pre_processing(env.state)
 
-            while not done:
+            while not env.gameover:
                 self.global_step += 1
 
                 action = self.get_action(env, state)
-                reward, _ = env.step(action)
+                reward = env.step(action)
 
                 if env.gameover:
-                    done = True
                     reward = -2.0
 
                     stats = [env.score, env.total_clrline]
@@ -123,17 +118,17 @@ class Trainer(Base):
                     summary_str = self.sess.run(self.summary_op)
                     self.summary_writer.add_summary(summary_str, e + 1)
 
-                next_state = self.pre_processing(env.gameScreen)
+                next_state = self.pre_processing(env.state)
 
                 ##Save PER Memory
-                self.memory.add(state[0], action, reward, next_state[0], float(done))
+                self.memory.add(state[0], action, reward, next_state[0], env.gameover)
 
                 if self.global_step > self.train_start:
                     update_train_step += 1
                     update_target_step += 1
 
                     if self.epsilon > self.epsilon_min:
-                        if bool(self.epsilon_step) and self.epsilon < self.epsilon_step[0]:
+                        if self.epsilon_step and self.epsilon < self.epsilon_step[0]:
                             self.epsilon_decay *= self.epsilon_step_decay
                             del self.epsilon_step[0]
                         self.epsilon -= (1.0 - self.epsilon_min) / self.epsilon_decay
@@ -170,7 +165,7 @@ class Trainer(Base):
                 best_score = score
 
     def per_train(self):
-        (update_input, action, reward, update_target, done, weight, batch_idxes) = self.memory.sample(self.batch_size,
+        (update_input, action, reward, update_target, gameover, weight, batch_idxes) = self.memory.sample(self.batch_size,
                                                                                                       beta=self.beta)
         target = self.model.predict(update_input)
         target_val = self.target_model.predict(update_target)
@@ -178,7 +173,7 @@ class Trainer(Base):
 
         ##Double Q-learning
         for i in range(self.batch_size):
-            if done[i]:
+            if gameover[i]:
                 target[i][action[i]] = reward[i]
             else:
                 a = np.argmax(target_val_arg[i])
@@ -227,14 +222,7 @@ class Trainer(Base):
 
 class Tester(Base):
     def __init__(self, cfg):
-        super().__init__(Base)
-        cfg['DATE'] = datetime.now().strftime('%y%m%d_%H%M%S')
-        self.cfg = cfg
-        self.rows = cfg['ROWS']
-        self.cols = cfg['COLUMNS']
-
-        self.ddqn = DuelingDQN(cfg)
-        self.model = self.ddqn.build_model()
+        super(Tester, self).__init__(cfg)
         self.model.load_weights(cfg['DEMO']['MODELPATH'])
 
     def test(self):
@@ -244,19 +232,19 @@ class Tester(Base):
         while True:
             done = False
             score = 0.0
-            env.start_game()
+            env.start()
 
-            state = self.pre_processing(env.gameScreen)
+            state = self.pre_processing(env.state)
 
             while not done:
                 action = self.get_action(env, state)
-                reward, _ = env.step(action)
+                reward = env.step(action)
 
                 if env.gameover:
                     done = True
                     reward = -2.0
 
-                state = self.pre_processing(env.gameScreen)
+                state = self.pre_processing(env.state)
                 score += reward
                 # time.sleep(0.1)
 
