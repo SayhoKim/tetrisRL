@@ -24,18 +24,9 @@ class Base():
         self.model = object()
 
     def pre_processing(self, gameimage):
-        # ret = np.uint8(resize(rgb2gray(gameimage), (40, 40), mode='constant')*255) # grayscale
-        copy_image = copy.deepcopy(gameimage)
-        ret = [[0] * self.cols for _ in range(self.rows + 1)]
-        for i in range(self.rows + 1):
-            for j in range(self.cols):
-                if copy_image[i][j] > 0:
-                    ret[i][j] = 1
-                else:
-                    ret[i][j] = 0
-
-        ret = sum(ret, [])
-        return ret
+        board = np.array(gameimage)
+        bin_board = np.where(board > 0, 1, board)
+        return np.expand_dims([bin_board], axis=-1)
 
     def get_action(self, env, state):
         if np.random.rand() <= self.epsilon:
@@ -105,7 +96,6 @@ class Trainer(Base):
         update_train_step = 0
         update_target_step = 0
         best_score = 0
-        key_actions = ["LEFT", "RIGHT", "UP", "DOWN"]
         EPISODES = self.cfg['TRAIN']['EPISODES']
         env = TetrisApp(self.cfg)
         pygame.init()
@@ -116,18 +106,11 @@ class Trainer(Base):
             env.start_game()
 
             state = self.pre_processing(env.gameScreen)
-            state = np.reshape(state, [self.rows + 1, self.cols, 1])
 
             while not done:
-                for event in pygame.event.get():
-                    if event.type == pygame.KEYDOWN:
-                        for key in key_actions:
-                            if event.key == eval("pygame.K_" + key):
-                                print(key, "key down")
-
                 self.global_step += 1
 
-                action = self.get_action(env, np.reshape(state, [1, self.rows + 1, self.cols, 1]))
+                action = self.get_action(env, state)
                 reward, _ = env.step(action)
 
                 if env.gameover:
@@ -141,7 +124,6 @@ class Trainer(Base):
                     self.summary_writer.add_summary(summary_str, e + 1)
 
                 next_state = self.pre_processing(env.gameScreen)
-                next_state = np.reshape(next_state, [self.rows + 1, self.cols, 1])
 
                 ##Save PER Memory
                 self.memory.add(state, action, reward, next_state, float(done))
@@ -174,6 +156,7 @@ class Trainer(Base):
 
             self.scores.append(score)
             self.episodes.append(e)
+
             print(
                 "Episode: {0} score: {1:.3f} total_clr_line: {2} global_step: {3} epsilon: {4:.3f} beta: {5:.3f}".format(
                     e, score, env.total_clrline, self.global_step, self.epsilon, self.beta))
@@ -264,19 +247,16 @@ class Tester(Base):
             env.start_game()
 
             state = self.pre_processing(env.gameScreen)
-            state = np.reshape(state, [self.rows + 1, self.cols, 1])
 
             while not done:
-                action = self.get_action(env, np.reshape(state, [1, self.rows + 1, self.cols, 1]))
+                action = self.get_action(env, state)
                 reward, _ = env.step(action)
 
                 if env.gameover:
                     done = True
                     reward = -2.0
 
-                next_state = self.pre_processing(env.gameScreen)
-                state = np.reshape(next_state, [self.rows + 1, self.cols, 1])
-
+                state = self.pre_processing(env.gameScreen)
                 score += reward
                 # time.sleep(0.1)
 

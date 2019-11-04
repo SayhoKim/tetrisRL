@@ -275,7 +275,6 @@ class TetrisApp(object):
         #     self.move(+1)
         # else:
         #     self.rotate_stone()
-
         ##Group Action Play
         self.n_rotate_stone(action//self.cols)
         self.move_drop(action%self.cols - self.stone_x)
