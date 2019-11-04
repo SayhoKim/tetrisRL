@@ -36,16 +36,9 @@ class Base():
         ret = sum(ret, [])
         return ret
 
-    # def get_action(self, env, state):
-    #     if np.random.rand() <= self.epsilon:
-    #         return random.randrange(self.action_size)
-    #     else:
-    #         state = np.float32(state)
-    #         q_values = self.model.predict(state)
-    #         return np.argmax(q_values[0])
-
     def get_action(self, env, state):
         if np.random.rand() <= self.epsilon:
+            # return random.randrange(self.action_size)
             if env.stone_number() in [1, 4, 6]:
                 return random.randrange(self.cols * 2)
             elif env.stone_number() in [2, 5, 7]:

@@ -20,7 +20,6 @@ class DuelingDQN():
         self.state_size = (self.rows + 1, self.cols, 1)
 
     def build_model(self):
-        ##Dueling DQN
         state = Input(shape=(self.state_size[0], self.state_size[1], self.state_size[2],))
         x1 = Conv2D(32, (3, 3), strides=(1, 1), kernel_initializer='he_uniform', padding='same')(state)
         x1 = BatchNormalization()(x1)
