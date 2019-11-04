@@ -261,7 +261,6 @@ class TetrisApp(object):
             self.init_game()
             self.gameover = False
 
-    ##The step is for model training
     def step(self, action):
         self.bonus = 0
         post_score = game_score
@@ -288,7 +287,6 @@ class TetrisApp(object):
         self.draw_matrix(self.stone,(self.stone_x, self.stone_y))
         self.draw_matrix(self.next_stone,(self.cols + 1, 2))
 
-        ##Draw screen Boundary
         pygame.draw.line(self.screen, (255, 255, 255), (0, 0), (0, self.height - 1), self.boundary_size)
         pygame.draw.line(self.screen, (255, 255, 255), (self.width + self.boundary_size, 0),
                          (self.width + self.boundary_size, self.height - 1), self.boundary_size)
@@ -299,7 +297,6 @@ class TetrisApp(object):
                          self.boundary_size)
         pygame.display.update()
 
-        ##All board matrix
         board_screen = copy.deepcopy(self.board)
         stone_m = len(self.stone)
         stone_n = len(self.stone[0])
@@ -308,7 +305,6 @@ class TetrisApp(object):
                 if self.stone[m][n] != 0:
                     board_screen[self.stone_y + m][self.stone_x + n] = self.stone[m][n]
 
-        ##Flatten next stone
         self.next_stone_flat = sum(self.next_stone, [])
         if self.next_stone_flat[0] == 1:
             self.next_stone_flat = self.next_stone_flat + [0, 0]
@@ -320,7 +316,6 @@ class TetrisApp(object):
             reward += self.bonus
         return reward, board_screen
 
-    ##The Run is for only tetris play (not used for training)
     def run(self):
         key_actions = {
             'ESCAPE': self.quit,
@@ -350,8 +345,6 @@ class TetrisApp(object):
                                      (255, 255, 255),
                                      (self.rlim + 1, 0),
                                      (self.rlim + 1, self.height - 1))
-                    # self.disp_msg("Next:", (self.rlim + cell_size,2))
-                    # self.disp_msg("Score: %d\n\nLevel: %d\\nLines: %d" % (self.score, self.level, self.lines),(self.rlim + cell_size, cell_size * 5))
                     self.draw_matrix(self.bground_grid, (0, 0))
                     self.draw_matrix(self.board, (0, 0))
                     self.draw_matrix(self.stone,
@@ -359,7 +352,6 @@ class TetrisApp(object):
                     self.draw_matrix(self.next_stone,
                                      (self.cols + 1, 2))
 
-                    ##Draw screen Boundary
                     pygame.draw.line(self.screen, (255, 255, 255), (0, 0), (0, self.height - 1), self.boundary_size)
                     pygame.draw.line(self.screen, (255, 255, 255), (self.width + self.boundary_size, 0),
                                      (self.width + self.boundary_size, self.height - 1), self.boundary_size)

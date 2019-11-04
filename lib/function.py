@@ -9,6 +9,7 @@ import time
 from datetime import datetime
 from env.tetrispg import TetrisApp
 from keras.optimizers import Adam
+from keras.utils.multi_gpu_utils import multi_gpu_model
 from lib.models.ddqn import DuelingDQN
 from lib.utils.replay_buffer import PrioritizedReplayBuffer
 
@@ -80,6 +81,10 @@ class Trainer(Base):
             print('>>> Resume Training')
             self.model.load_weights(cfg['TRAIN']['RESUMEPATH'], by_name=True, skip_mismatch=False)
             self.target_model.load_weights(cfg['TRAIN']['RESUMEPATH'], by_name=True, skip_mismatch=False)
+
+        if len(cfg['NUM_GPUS']) > 1:
+            self.model = multi_gpu_model(self.model, gpus=len(cfg['NUM_GPUS']))
+            self.target_model = multi_gpu_model(self.target_model, gpus=len(cfg['NUM_GPUS']))
 
         self.optimizer = self.model_optimizer()
 

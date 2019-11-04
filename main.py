@@ -1,6 +1,7 @@
 import argparse
 import os
 import yaml
+from keras import backend as K
 from lib.function import Trainer, Tester
 
 
@@ -12,7 +13,8 @@ if __name__ == '__main__':
 
     cfg_file = open(opt.cfg, 'r')
     cfg = yaml.load(cfg_file)
-    os.environ['CUDA_VISIBLE_DEVICES'] = cfg['CUDA_VISIBLE_DEVICES']
+    if len(K.tensorflow_backend._get_available_gpus()) > 0:
+        os.environ['CUDA_VISIBLE_DEVICES'] = ','.join([str(i) for i in cfg['NUM_GPUS']])
 
     if not opt.demo:
         trainer = Trainer(cfg)

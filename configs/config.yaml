@@ -1,5 +1,5 @@
 
-CUDA_VISIBLE_DEVICES: '0'
+NUM_GPUS: [0, 1]
 
 TRAIN:
   RESUME: false
