@@ -82,8 +82,9 @@ class Trainer(Base):
             self.model.load_weights(cfg['TRAIN']['RESUMEPATH'], by_name=True, skip_mismatch=False)
             self.target_model.load_weights(cfg['TRAIN']['RESUMEPATH'], by_name=True, skip_mismatch=False)
 
-        if len(cfg['NUM_GPUS']) > 1:
-            self.model = multi_gpu_model(self.model, gpus=len(cfg['NUM_GPUS']))
+        # if len(cfg['NUM_GPUS']) > 1:
+        #     print('>>> Multi-GPU Processing')
+        #     self.model = multi_gpu_model(self.model, gpus=len(cfg['NUM_GPUS']))
 
         self.optimizer = self.model_optimizer()
 

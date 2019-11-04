@@ -12,7 +12,6 @@ class DuelingDQN():
 
         ##Original Action Play
         # self.action_space = [i for i in range(4)]
-
         ##Group Action Play
         self.action_space = [i for i in range(4 * self.cols)]
 
