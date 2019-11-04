@@ -66,8 +66,6 @@ class Trainer(Base):
         self.rows = cfg['ROWS']
         self.cols = cfg['COLUMNS']
         self.global_step = 0
-        self.epsilon_step = cfg['TRAIN']['EPSILONSTEP']
-        self.epsilon_step_decay = cfg['TRAIN']['EPSILONSTEPDECAY']
         self.scores, self.episodes = [], []
 
         self.train_start = cfg['TRAIN']['TRAINSTART']
@@ -78,6 +76,8 @@ class Trainer(Base):
         self.epsilon = cfg['TRAIN']['EPSILON']
         self.epsilon_min = cfg['TRAIN']['EPSILONMIN']
         self.epsilon_decay = cfg['TRAIN']['EPSILONDECAY']
+        self.epsilon_step = cfg['TRAIN']['EPSILONSTEP']
+        self.epsilon_step_decay = cfg['TRAIN']['EPSILONSTEPDECAY']
 
         self.ddqn = DuelingDQN(cfg)
         self.model = self.ddqn.build_model()

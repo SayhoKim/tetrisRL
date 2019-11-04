@@ -39,7 +39,7 @@ COLORS: [
   [50, 120, 52],
   [146, 202, 73],
   [150, 161, 218],
-  [35, 35, 35]  # Helper color for background grid
+  [35, 35, 35]
 ]
 
 TETRISSHAPES: [
