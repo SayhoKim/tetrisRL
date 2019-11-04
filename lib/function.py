@@ -84,7 +84,6 @@ class Trainer(Base):
 
         if len(cfg['NUM_GPUS']) > 1:
             self.model = multi_gpu_model(self.model, gpus=len(cfg['NUM_GPUS']))
-            self.target_model = multi_gpu_model(self.target_model, gpus=len(cfg['NUM_GPUS']))
 
         self.optimizer = self.model_optimizer()
 
