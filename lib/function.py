@@ -1,15 +1,66 @@
 import copy
+import keras.backend as K
 import numpy as np
 import pygame
+import random
+import tensorflow as tf
 import time
 
 from datetime import datetime
 from env.tetrispg import TetrisApp
-from lib.models.dddqn import DuelingDoubleDQN
+from keras.optimizers import Adam
+from lib.models.ddqn import DuelingDQN
+from lib.utils.replay_buffer import PrioritizedReplayBuffer
 
 
-class Trainer():
+class Base():
     def __init__(self, cfg):
+        self.cfg = dict()
+        self.rows = int()
+        self.cols = int()
+        self.epsilon = 0
+        self.beta = 1.0
+        self.model = object()
+
+    def pre_processing(self, gameimage):
+        # ret = np.uint8(resize(rgb2gray(gameimage), (40, 40), mode='constant')*255) # grayscale
+        copy_image = copy.deepcopy(gameimage)
+        ret = [[0] * self.cols for _ in range(self.rows + 1)]
+        for i in range(self.rows + 1):
+            for j in range(self.cols):
+                if copy_image[i][j] > 0:
+                    ret[i][j] = 1
+                else:
+                    ret[i][j] = 0
+
+        ret = sum(ret, [])
+        return ret
+
+    # def get_action(self, env, state):
+    #     if np.random.rand() <= self.epsilon:
+    #         return random.randrange(self.action_size)
+    #     else:
+    #         state = np.float32(state)
+    #         q_values = self.model.predict(state)
+    #         return np.argmax(q_values[0])
+
+    def get_action(self, env, state):
+        if np.random.rand() <= self.epsilon:
+            if env.stone_number() in [1, 4, 6]:
+                return random.randrange(self.cols * 2)
+            elif env.stone_number() in [2, 5, 7]:
+                return random.randrange(self.cols * 4)
+            else:
+                return random.randrange(self.cols)
+        else:
+            state = np.float32(state)
+            q_values = self.model.predict(state)
+            return np.argmax(q_values[0])
+
+
+class Trainer(Base):
+    def __init__(self, cfg):
+        super().__init__(Base)
         cfg['DATE'] = datetime.now().strftime('%y%m%d_%H%M%S')
         self.cfg = cfg
         self.rows = cfg['ROWS']
@@ -19,8 +70,38 @@ class Trainer():
         self.epsilon_step_decay = cfg['TRAIN']['EPSILONSTEPDECAY']
         self.scores, self.episodes = [], []
 
-        self.agent = DuelingDoubleDQN(cfg)
-        self.agent.update_target_model()
+        self.train_start = cfg['TRAIN']['TRAINSTART']
+        self.batch_size = cfg['TRAIN']['BATCHSIZE']
+        self.lr = cfg['TRAIN']['LR']
+        self.discount_factor = cfg['TRAIN']['DISCOUNTFACTOR']
+
+        self.epsilon = cfg['TRAIN']['EPSILON']
+        self.epsilon_min = cfg['TRAIN']['EPSILONMIN']
+        self.epsilon_decay = cfg['TRAIN']['EPSILONDECAY']
+
+        self.ddqn = DuelingDQN(cfg)
+        self.model = self.ddqn.build_model()
+        self.target_model = self.ddqn.build_model()
+
+        if cfg['TRAIN']['RESUME']:
+            print('>>> Resume Training')
+            self.model.load_weights(cfg['TRAIN']['RESUMEPATH'], by_name=True, skip_mismatch=False)
+            self.target_model.load_weights(cfg['TRAIN']['RESUMEPATH'], by_name=True, skip_mismatch=False)
+
+        self.optimizer = self.model_optimizer()
+
+        self.memory = PrioritizedReplayBuffer(cfg['TRAIN']['BUFFERSIZE'], alpha=cfg['TRAIN']['ALPHA'])
+        self.beta = cfg['TRAIN']['BETA']
+        self.beta_max = cfg['TRAIN']['BETAMAX']
+        self.beta_decay = cfg['TRAIN']['BETADECAY']
+        self.prioritized_replay_eps = 0.000001
+
+        ##Tensorboard configuration
+        self.sess = tf.InteractiveSession()
+        K.set_session(self.sess)
+        self.summary_placeholders, self.update_ops, self.summary_op = self.setup_summary()
+        self.summary_writer = tf.summary.FileWriter('experiments/{}'.format(cfg['DATE']), self.sess.graph)
+        self.sess.run(tf.global_variables_initializer())
 
     def train(self):
         update_train_step = 0
@@ -48,7 +129,7 @@ class Trainer():
 
                 self.global_step += 1
 
-                action = self.agent.get_action(env, np.reshape(state, [1, self.rows + 1, self.cols, 1]))
+                action = self.get_action(env, np.reshape(state, [1, self.rows + 1, self.cols, 1]))
                 reward, _ = env.step(action)
 
                 if env.gameover:
@@ -57,39 +138,38 @@ class Trainer():
 
                     stats = [env.score, env.total_clrline]
                     for i in range(len(stats)):
-                        self.agent.sess.run(self.agent.update_ops[i],
-                                            feed_dict={self.agent.summary_placeholders[i]: float(stats[i])})
-                    summary_str = self.agent.sess.run(self.agent.summary_op)
-                    self.agent.summary_writer.add_summary(summary_str, e + 1)
+                        self.sess.run(self.update_ops[i], feed_dict={self.summary_placeholders[i]: float(stats[i])})
+                    summary_str = self.sess.run(self.summary_op)
+                    self.summary_writer.add_summary(summary_str, e + 1)
 
                 next_state = self.pre_processing(env.gameScreen)
                 next_state = np.reshape(next_state, [self.rows + 1, self.cols, 1])
 
                 ##Save PER Memory
-                self.agent.memory.add(state, action, reward, next_state, float(done))
+                self.memory.add(state, action, reward, next_state, float(done))
 
-                if self.global_step > self.agent.train_start:
+                if self.global_step > self.train_start:
                     update_train_step += 1
                     update_target_step += 1
 
-                    if self.agent.epsilon > self.agent.epsilon_min:
-                        if bool(self.epsilon_step) and self.agent.epsilon < self.epsilon_step[0]:
-                            self.agent.epsilon_decay *= self.epsilon_step_decay
+                    if self.epsilon > self.epsilon_min:
+                        if bool(self.epsilon_step) and self.epsilon < self.epsilon_step[0]:
+                            self.epsilon_decay *= self.epsilon_step_decay
                             del self.epsilon_step[0]
-                        self.agent.epsilon -= (1.0 - self.agent.epsilon_min) / self.agent.epsilon_decay
+                        self.epsilon -= (1.0 - self.epsilon_min) / self.epsilon_decay
 
-                    if self.agent.beta < self.agent.beta_max:
-                        self.agent.beta += (self.agent.beta_max - 0.4) / self.agent.beta_decay
+                    if self.beta < self.beta_max:
+                        self.beta += (self.beta_max - 0.4) / self.beta_decay
                     else:
-                        self.agent.beta = 1.0
+                        self.beta = 1.0
 
                     if update_train_step > 3:
                         update_train_step = 0
-                        self.agent.train_model()
+                        self.per_train()
 
                     if update_target_step > 10000:
                         update_target_step = 0
-                        self.agent.update_target_model()
+                        self.target_model.set_weights(self.model.get_weights())
 
                 state = next_state
                 score += reward
@@ -98,38 +178,83 @@ class Trainer():
             self.episodes.append(e)
             print(
                 "Episode: {0} score: {1:.3f} total_clr_line: {2} global_step: {3} epsilon: {4:.3f} beta: {5:.3f}".format(
-                    e, score, env.total_clrline, self.global_step, self.agent.epsilon, self.agent.beta))
+                    e, score, env.total_clrline, self.global_step, self.epsilon, self.beta))
 
             if e % 10000 == 0 and e > 10000:
-                self.agent.model.save_weights("experiments/{0}/model_ep_{1}.h5".format(self.cfg['DATE'], e))
+                self.model.save_weights("experiments/{0}/model_ep_{1}.h5".format(self.cfg['DATE'], e))
 
             if best_score < score:
                 print('Saved Best Score Model: {0:f}'.format(score))
-                self.agent.model.save_weights("experiments/{0}/model_best_score.h5".format(self.cfg['DATE']))
+                self.model.save_weights("experiments/{0}/model_best_score.h5".format(self.cfg['DATE']))
                 best_score = score
 
-    def pre_processing(self, gameimage):
-        # ret = np.uint8(resize(rgb2gray(gameimage), (40, 40), mode='constant')*255) # grayscale
-        copy_image = copy.deepcopy(gameimage)
-        ret = [[0] * self.cols for _ in range(self.rows + 1)]
-        for i in range(self.rows + 1):
-            for j in range(self.cols):
-                if copy_image[i][j] > 0:
-                    ret[i][j] = 1
-                else:
-                    ret[i][j] = 0
+    def per_train(self):
+        (update_input, action, reward, update_target, done, weight, batch_idxes) = self.memory.sample(self.batch_size,
+                                                                                                      beta=self.beta)
+        target = self.model.predict(update_input)
+        target_val = self.target_model.predict(update_target)
+        target_val_arg = self.model.predict(update_target)
 
-        ret = sum(ret, [])
-        return ret
+        ##Double Q-learning
+        for i in range(self.batch_size):
+            if done[i]:
+                target[i][action[i]] = reward[i]
+            else:
+                a = np.argmax(target_val_arg[i])
+                target[i][action[i]] = reward[i] + self.discount_factor * target_val[i][a]
+
+        err = self.optimizer([update_input, target, weight])
+        err = np.reshape(err, [self.batch_size, self.ddqn.action_size])
+        new_priorities = np.abs(np.sum(err, axis=1)) + self.prioritized_replay_eps
+
+        self.memory.update_priorities(batch_idxes, new_priorities)
+
+    def model_optimizer(self):
+        target = K.placeholder(shape=[None, self.ddqn.action_size])
+        weight = K.placeholder(shape=[None, ])
+
+        ##Hubber Loss
+        clip_delta = 1.0
+        pred = self.model.output
+        err = target - pred
+        cond = K.abs(err) < clip_delta
+        squared_loss = 0.5 * K.square(err)
+        linear_loss = clip_delta * (K.abs(err) - 0.5 * clip_delta)
+        loss1 = tf.where(cond, squared_loss, linear_loss)
+
+        weighted_loss = tf.multiply(tf.expand_dims(weight, -1), loss1)
+        loss = K.mean(weighted_loss, axis=-1)
+        optimizer = Adam(lr=self.lr)
+        updates = optimizer.get_updates(self.model.trainable_weights, [], loss)
+        func = K.function([self.model.input, target, weight], [err], updates=updates)
+
+        return func
+
+    def setup_summary(self):
+        eps_total_reward = tf.Variable(0.)
+        eps_total_clrline = tf.Variable(0.)
+
+        tf.summary.scalar('Total Reward/Episode', eps_total_reward)
+        tf.summary.scalar('Total Clear Line/Episode', eps_total_clrline)
+        summary_vars = [eps_total_reward, eps_total_clrline]
+        summary_placeholders = [tf.placeholder(tf.float32) for _ in range(len(summary_vars))]
+        update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in range(len(summary_vars))]
+        summary_op = tf.summary.merge_all()
+
+        return summary_placeholders, update_ops, summary_op
 
 
-class Tester():
+class Tester(Base):
     def __init__(self, cfg):
+        super().__init__(Base)
         cfg['DATE'] = datetime.now().strftime('%y%m%d_%H%M%S')
         self.cfg = cfg
         self.rows = cfg['ROWS']
         self.cols = cfg['COLUMNS']
-        self.agent = DuelingDoubleDQN(cfg, is_train=False)
+
+        self.ddqn = DuelingDQN(cfg)
+        self.model = self.ddqn.build_model()
+        self.model.load_weights(cfg['DEMO']['MODELPATH'])
 
     def test(self):
         env = TetrisApp(self.cfg)
@@ -144,7 +269,7 @@ class Tester():
             state = np.reshape(state, [self.rows + 1, self.cols, 1])
 
             while not done:
-                action = self.agent.get_action(env, np.reshape(state, [1, self.rows + 1, self.cols, 1]))
+                action = self.get_action(env, np.reshape(state, [1, self.rows + 1, self.cols, 1]))
                 reward, _ = env.step(action)
 
                 if env.gameover:
@@ -159,20 +284,6 @@ class Tester():
 
             print("Episode: {0} score: {1:.3f} total_clr_line: {2} epsilon: {3:.3f} beta: {4:.3f}".format(e, score,
                                                                                                           env.total_clrline,
-                                                                                                          self.agent.epsilon,
-                                                                                                          self.agent.beta))
+                                                                                                          self.epsilon,
+                                                                                                          self.beta))
             e += 1
-
-    def pre_processing(self, gameimage):
-        # ret = np.uint8(resize(rgb2gray(gameimage), (40, 40), mode='constant')*255) # grayscale
-        copy_image = copy.deepcopy(gameimage)
-        ret = [[0] * self.cols for _ in range(self.rows + 1)]
-        for i in range(self.rows + 1):
-            for j in range(self.cols):
-                if copy_image[i][j] > 0:
-                    ret[i][j] = 1
-                else:
-                    ret[i][j] = 0
-
-        ret = sum(ret, [])
-        return ret
