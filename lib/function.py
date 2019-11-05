@@ -90,8 +90,6 @@ class Trainer(Base):
         self.sess.run(tf.global_variables_initializer())
 
     def train(self):
-        update_train_step = 0
-        update_target_step = 0
         best_score = 0
         EPISODES = self.cfg['TRAIN']['EPISODES']
         env = TetrisApp(self.cfg)
@@ -124,8 +122,6 @@ class Trainer(Base):
                 self.memory.add(state[0], action, reward, next_state[0], env.gameover)
 
                 if self.global_step > self.train_start:
-                    update_train_step += 1
-                    update_target_step += 1
 
                     if self.epsilon > self.epsilon_min:
                         if self.epsilon_step and self.epsilon < self.epsilon_step[0]:
@@ -138,12 +134,10 @@ class Trainer(Base):
                     else:
                         self.beta = 1.0
 
-                    if update_train_step > 3:
-                        update_train_step = 0
+                    if self.global_step % 3 == 0:
                         self.per_train()
 
-                    if update_target_step > 10000:
-                        update_target_step = 0
+                    if self.global_step % 10000 == 0:
                         self.target_model.set_weights(self.model.get_weights())
 
                 state = next_state
