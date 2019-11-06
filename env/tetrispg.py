@@ -32,15 +32,13 @@ class TetrisApp(object):
         self.default_font = pygame.font.Font(pygame.font.get_default_font(), 12)
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.event.set_blocked(pygame.MOUSEMOTION)
-        self.init_game()
+        self.start()
 
     def start(self):
-        if self.gameover:
-            self.init_game()
-            self.gameover = False
+        self.init_game()
+        self.gameover = False
 
     def init_game(self):
-        self.gameover = False
         self.paused = False
         self.level = 1
         self.score = 0

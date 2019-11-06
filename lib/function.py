@@ -224,18 +224,16 @@ class Tester(Base):
 
         e = 0
         while True:
-            done = False
             score = 0.0
             env.start()
 
             state = self.pre_processing(env.state)
 
-            while not done:
+            while not env.gameover:
                 action = self.get_action(env, state)
                 reward = env.step(action)
 
                 if env.gameover:
-                    done = True
                     reward = -2.0
 
                 state = self.pre_processing(env.state)
