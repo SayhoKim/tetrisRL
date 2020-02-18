@@ -17,7 +17,7 @@ After editing configuration file (MODELPATH):
 python main.py --demo
 ```
 ## Reference
-[Playing Atari with Deep Reinforcement Learning](https://arxiv.org/abs/1312.5602) \
-[Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581) \
-[Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461) \
-[Prioritized Experience Replay](https://arxiv.org/abs/1511.05952)
+1.  Playing Atari with Deep Reinforcement Learning[[arxiv]](https://arxiv.org/abs/1312.5602) \
+2. Dueling Network Architectures for Deep Reinforcement Learning[[arxiv]](https://arxiv.org/abs/1511.06581) \
+3. Deep Reinforcement Learning with Double Q-learning[[arxiv]](https://arxiv.org/abs/1509.06461) \
+4. Prioritized Experience Replay[[arxiv]](https://arxiv.org/abs/1511.05952)
