@@ -1,4 +1,8 @@
 # tetrisRL
+![Python](https://img.shields.io/badge/Python->=3.5-315a81.svg)
+![Tensorflow](https://img.shields.io/badge/Tensorflow-1.15.2-c97b2c.svg)
+![Keras](https://img.shields.io/badge/Keras-2.3.1-3b8131.svg)
+
 [demo video](https://www.youtube.com/watch?v=jbZ2wG1Pzb4&t=23s)
 ## Results
 play on 7x14 board\
@@ -6,15 +10,19 @@ play on 7x14 board\
 ## Quick start
 ### Installation
 1. Install Pygame, Keras and Tensorflow
+```
+  $ cd {Project path}
+  $ pip3 install -r requirements.txt
+```
 2. Clone this repo
 ### Training
-```Shell
-python main.py
+```
+  $ python3 main.py
 ```
 ### Demo
 After editing configuration file (MODELPATH):
-```Shell
-python main.py --demo
+```
+  $ python3 main.py --demo
 ```
 ## Reference
 1.  Playing Atari with Deep Reinforcement Learning[[arxiv]](https://arxiv.org/abs/1312.5602)
