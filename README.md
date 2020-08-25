@@ -9,12 +9,15 @@ play on 7x14 board\
 ![](https://github.com/SayhoKim/tetrisRL/blob/master/result_1.jpg) ![](https://github.com/SayhoKim/tetrisRL/blob/master/result_2.jpg)
 ## Quick start
 ### Installation
-1. Install Pygame, Keras and Tensorflow
+1. Clone this repo
+```
+  $ git clone https://github.com/SayhoKim/tetrisRL.git
+```
+2. Install Pygame, Keras and Tensorflow
 ```
   $ cd {Project path}
   $ pip3 install -r requirements.txt
 ```
-2. Clone this repo
 ### Training
 ```
   $ python3 main.py
@@ -25,7 +28,7 @@ After editing configuration file (MODELPATH):
   $ python3 main.py --demo
 ```
 ## Reference
-1.  Playing Atari with Deep Reinforcement Learning[[arxiv]](https://arxiv.org/abs/1312.5602)
+1. Playing Atari with Deep Reinforcement Learning[[arxiv]](https://arxiv.org/abs/1312.5602)
 2. Dueling Network Architectures for Deep Reinforcement Learning[[arxiv]](https://arxiv.org/abs/1511.06581)
 3. Deep Reinforcement Learning with Double Q-learning[[arxiv]](https://arxiv.org/abs/1509.06461)
 4. Prioritized Experience Replay[[arxiv]](https://arxiv.org/abs/1511.05952)
